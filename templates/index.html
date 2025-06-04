@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket con Flask</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+
+    <div class="container d-flex justify-content-center align-items-center vh-50">
+        <div class="text-center">
+            <h1>Bienvenido a la aplicación WebSocket and HTTP</h1>
+            <p>Envía un mensaje y verás la respuesta en tiempo real.</p>
+
+            <div class="mb-3">
+                <input id="msgInput" class="form-control" placeholder="Escribe un mensaje..." />
+            </div>
+            <button onclick="sendMessage()" class="btn btn-primary mb-3">Enviar</button>
+
+
+            <h4>Lista de nombres:</h4>
+
+            <div id="lista-nombres">
+
+            </div>
+
+            <div class="mb-3 mt-3">
+                <input id="comentarios" class="form-control" placeholder="Escribe un comentario..." />
+            </div>
+
+
+
+            <div class="mb-3 mt-3">
+                <button onclick="sendComentarios()" class="btn btn-success mb-3">Enviar Comentario</button>
+            </div>
+
+
+
+            <button onclick="desconectar_servidor()" type="button" class="btn btn-warning">Desconectar Servidor</button>
+
+        </div>
+    </div>
+
+    <!--
+    
+    
+    <script>
+        const socket = io();
+
+        socket.on('connect', () => {
+            console.log('Conectado al servidor');
+        });
+
+
+
+        socket.on('connect_error', (error) => {
+            console.error('Error al conectar con el servidor:', error);
+            alert('Hubo un error al intentar conectarse al servidor. Intenta nuevamente.');
+          });
+
+        
+        
+          socket.on('respuesta', data => {
+            console.log('Respuesta del servidor:', data);
+
+            const lista_alumnos = document.getElementById('lista-nombres');
+
+            let contandor = 0;
+
+            data.forEach((item, index) => {
+
+
+                setTimeout(() => {
+
+
+                    
+                    const ul = document.createElement('ul');
+
+                    const li = document.createElement('li');
+
+                    li.textContent = `Tipo: ${item.tipo}, Mensaje: ${item.mensaje}, Comentarios: ${item.comentarios}`;                    
+                    ul.appendChild(li);
+                    ul.classList.add('list-group', 'list-group-flush', 'mt-3');
+                    lista_alumnos.append(ul);
+
+                    contandor++;
+                    console.log('Soy contandor', contandor);
+    
+                }, index * 2000);
+
+            });
+  
+        });
+
+        socket.on('message', (data) => {
+            console.log('Mensaje recibido del servidor:', data);
+            alert('Nuevo mensaje del servidor: ' + data);
+        });
+
+        socket.on('comentarios', (data) => {
+            console.log('Comentario recibido del servidor:', data);
+            alert('Nuevo comentario del servidor: ' + data);
+        });
+
+        
+          
+
+        function desconectar_servidor() {
+
+
+            socket.disconnect();
+            console.log('Desconectado del servidor');
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('msgInput');
+            const message = input.value.trim();
+
+
+
+
+
+            if(input.value.trim() === '' || input.value === null || input.value === 0) {
+                alert('Por favor, escribe un mensaje antes de enviar.');
+                return;
+            }
+
+            const paquete = [
+                {
+                    tipo: 'mensaje',
+                    mensaje: message,
+                    comentarios: 'Comentario de prueba'
+                },
+                {
+                    tipo: 'comentario',
+                    mensaje: message,
+                    comentarios: 'Comentario de prueba'
+                },
+                {
+                    tipo: 'mensaje',
+                    mensaje: message,
+                    comentarios: 'Comentario de prueba'
+                },
+                {
+                    tipo: 'comentario',
+                    mensaje: message,
+                    comentarios: 'Comentario de prueba'
+                },
+                {
+                    tipo: 'mensaje',
+                    mensaje: message,
+                    comentarios: 'Comentario de prueba'
+                }
+            ];
+
+         
+                socket.emit('paqueteMultiple', paquete);
+            
+       
+            input.value = ''; // Limpiar campo
+        
+        }
+        function sendComentarios() {
+            const input_comentarios = document.getElementById('comentarios');
+
+
+            const comentarios = input_comentarios.value.trim(); 
+
+
+            console.log("Comentario:", input_comentarios.value);
+
+            socket.emit('comentarios', comentarios);
+
+
+
+            //socket.send(input_comentarios.value);
+            //input_comentarios.value = ''; // Limpiar campo
+        }
+    </script>
+
+    -->
+</body>
+</html>
