@@ -18,6 +18,17 @@ app.add_middleware(
 )
 
 
+def get_ram_usage_by_name(target_name: str):
+    total_ram = 0.0
+    for proc in psutil.process_iter(['name', 'memory_info']):
+        try:
+            if proc.info['name'] and target_name.lower() in proc.info['name'].lower():
+                ram_mb = proc.info['memory_info'].rss / (1024 * 1024)
+                total_ram += ram_mb
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            continue
+    return round(total_ram, 2) if total_ram > 0 else None
+
 
 
 @app.get("/http/sine/{index}")
@@ -40,6 +51,12 @@ def get_sine_paquete(index: int):
     ram_mb = mem_info.rss / (1024 * 1024)
     ram_percent_total = psutil.virtual_memory().percent
 
+
+    vscode_ram = get_ram_usage_by_name("Code.exe")
+    cmd_ram = get_ram_usage_by_name("cmd.exe")
+    
+    
+
     return JSONResponse(content={
         "x": index,
         "y": round(y, 4),
@@ -50,6 +67,8 @@ def get_sine_paquete(index: int):
         "cpu_equipo_total": cpu_percent_total,
         "ram_mb": round(ram_mb, 2),
         "ram_equipo_total": ram_percent_total,
+        "visual_studio": vscode_ram,
+        "cmd_ram": cmd_ram
     })
 
 
