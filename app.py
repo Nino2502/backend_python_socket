@@ -2,15 +2,10 @@ from fastapi import FastAPI, WebSocket
 import math
 import asyncio
 import time
-
 app = FastAPI()
-
-
-
 @app.websocket("/ws/sine")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
-
     cantidad_paquetes = 100
     """
     Esta variable define la cantidad total de paquetes que se van a mandar 
@@ -33,14 +28,8 @@ async def websocket_endpoint(websocket: WebSocket):
     Esta variable representa el tiempo total estimado que se tardará
     en enviar todos los paquetes, con base en la frecuencia hz.
     """
-
     i = 0  # Esta variable es usada como marcador para el eje x en la gráfica de la señal senoidal
-    
-    
     count = 0  # Contador de paquetes enviados al frontend
-
-
-
     t0 = time.time()  # Marcar el tiempo de inicio para medir la duración real del envío
     while count < cantidad_paquetes:
         """
@@ -65,11 +54,6 @@ async def websocket_endpoint(websocket: WebSocket):
         Esperar 'ts' segundos antes de enviar el siguiente paquete.
         Esta espera es lo que simula la frecuencia de muestreo.
         Por ejemplo, si ts = 0.0025, se espera 2.5 ms entre cada envío.
-        """
-
-
-    
-    
-    
+        """    
     ##CORRER PROYECTO: uvicorn app:app --reload
 

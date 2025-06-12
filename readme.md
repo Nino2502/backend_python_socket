@@ -12,6 +12,8 @@
     pip install fastapi uvicorn
     pip install "uvicorn[standard]"
 
+
+
 # Paquetes adicionales para la graficacion de datos
     chart.js ng2-charts
     npm install ngx-toastr @angular/animations

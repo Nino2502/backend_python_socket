@@ -49,6 +49,17 @@ def get_resource_usage():
         "ram_equipo_total": round(ram_percent_total, 2),
     }
 
+def get_ram_usage_by_name(target_name: str):
+    total_ram = 0.0
+    for proc in psutil.process_iter(['name', 'memory_info']):
+        try:
+            if proc.info['name'] and target_name.lower() in proc.info['name'].lower():
+                ram_mb = proc.info['memory_info'].rss / (1024 * 1024)
+                total_ram += ram_mb
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            continue
+    return round(total_ram, 2) if total_ram > 0 else None
+
 def start_tcp_server():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
         server.bind((HOST, TCP_PORT))
@@ -59,26 +70,28 @@ def start_tcp_server():
         with conn:
             print(f"Conexión establecida con {addr}")
 
-            hz = 10
-            
+            hz = 100
             ts = 1 / hz
-            
-            duration_seconds = 1 * 60
+            duration_seconds = 20
             start_time = time.time()
-            
+
             loop = asyncio.new_event_loop()
-            
             asyncio.set_event_loop(loop)
-            
+
             cantidad_paquetes = 0
+            vscode_ram = get_ram_usage_by_name("Code.exe")
+            cmd_ram = get_ram_usage_by_name("cmd.exe")
+            prev_timestamp = None
 
             while (time.time() - start_time) < duration_seconds:
                 current_time = time.time() - start_time
                 cantidad_paquetes += 1
-
-                y = math.sin(2 * math.pi * hz * current_time)  # onda seno según tiempo real
-
+                y = math.sin(2 * math.pi * hz * current_time)
                 recursos = get_resource_usage()
+                current_timestamp = time.time()
+
+                delta_t = current_timestamp - prev_timestamp if prev_timestamp else None
+                prev_timestamp = current_timestamp
 
                 data = {
                     "cantidad_paquetes": cantidad_paquetes,
@@ -91,7 +104,10 @@ def start_tcp_server():
                     "ram_equipo_total": recursos["ram_equipo_total"],
                     "x": round(current_time, 2),
                     "y": round(y, 4),
-                    "ts_server": time.time()
+                    "ts_server": time.time(),
+                    "vs_code_ram": vscode_ram,
+                    "cmd_ram": cmd_ram,
+                    "delta_t": round(delta_t, 6) if delta_t else None,
                 }
 
                 mensaje = json.dumps(data) + "\n"
@@ -99,7 +115,6 @@ def start_tcp_server():
                 loop.run_until_complete(broadcast_data(data))
                 time.sleep(ts)
 
-            # Paquete final
             recursos_finales = get_resource_usage()
             final_data = {
                 "fin": True,
@@ -108,15 +123,19 @@ def start_tcp_server():
                 "ts": ts,
                 "tiempo_transcurrido": round(time.time() - start_time, 2),
                 "cpu_process_percent": recursos_finales["cpu_process_percent"],
+                "cpu_equipo_total": recursos_finales["cpu_equipo_total"],
                 "ram_process_mb": recursos_finales["ram_process_mb"],
+                "ram_equipo_total": recursos_finales["ram_equipo_total"],
                 "ts_server": time.time(),
-                "tiempo": duration_seconds
+                "tiempo": duration_seconds,
+                "vs_code_ram": vscode_ram,
+                "cmd_ram": cmd_ram,
+                "delta_t": round(delta_t, 6) if delta_t else None,
             }
 
             conn.sendall((json.dumps(final_data) + "\n").encode("utf-8"))
             loop.run_until_complete(broadcast_data(final_data))
             print("Transmisión finalizada")
-            conn.close()
 
 if __name__ == "__main__":
     tcp_thread = threading.Thread(target=start_tcp_server)
