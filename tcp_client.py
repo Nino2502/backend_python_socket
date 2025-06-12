@@ -13,6 +13,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     buffer = ""
     prev_ts_client = None
 
+    numero_paq = 0
     while True:
         data = s.recv(1024)
         if not data:
@@ -34,12 +35,17 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 else:
                     print("[CLIENTE] Primer paquete recibido")
                 prev_ts_client = ts_client
+                
+                numero_paq += 1
 
                 # Calcular latencia real (ts_client - ts_server)
                 ts_server = paquete.get("ts_server")
                 if ts_server:
                     latencia = ts_client - ts_server
                     latencias.append(latencia)
+                    
+                    print(f"{numero_paq} Latencia: {latencia:.6f}  segundos")
+                    
                     print(f"[LATENCIA] Desde el servidor hasta cliente: {latencia:.6f} segundos")
 
                 # Mostrar información adicional
