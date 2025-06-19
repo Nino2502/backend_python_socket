@@ -25,6 +25,9 @@ class AppWindow(ttk.Window):
         self.amplitud = 0
         self.hz = 0
         self.segundos = 0
+        
+        self.max_datos = 50
+
 
         # Datos para las gráficas
         self.x_data, self.y_data, = [], []
@@ -131,28 +134,64 @@ class AppWindow(ttk.Window):
         self.canvas2 = FigureCanvasTkAgg(self.fig2, master=graficas_row)
         self.canvas2.get_tk_widget().grid(row=0, column=1, padx=5, pady=5, sticky='nsew')
 
+   
     # Actualizadores
     def actualizar_amplitud(self):
         try:
             self.amplitud = float(self.entrada_amplitud.get())
+            
+            self.amplitud = max(0, self.amplitud)
+            
+            if self.amplitud == 0:
+                messagebox.showerror("Error", "La amplitud no puede ser cero.")
+                return
+            if self.amplitud < 0:
+                messagebox.showerror("Error", "La amplitud no puede ser negativa.")
+                return
+            
+            
             print(f"Amplitud actualizada a: {self.amplitud}")
         except ValueError:
-            print("Valor no válido para amplitud")
+            messagebox.showerror("Error","Valor no válido para amplitud")
 
+   
     def actualizar_hz(self):
         try:
             self.hz = float(self.entrada_hz.get())
+            
+            if self.hz == 0:
+                messagebox.showerror("Error","La hz no puede ser cero.")
+                return
+            
+            if self.hz < 0:
+                messagebox.showerror("Error", "La hz no puede ser negativa.")
+                return
+            
             print(f"Hz actualizado a: {self.hz}")
         except ValueError:
-            print("Valor no válido para Hz")
+            messagebox.showerror("Error","Valor no válido para Hz")
 
+   
     def actualizar_seg(self):
         try:
+            
             self.segundos = float(self.entrada_segundos.get())
+            
+            if self.segundos <= 0:
+                messagebox.showerror("Error", "Los segundos deben ser mayores que 0.")
+                return
+            if self.segundos < 0:
+                messagebox.showerror("Error", "Los segundos no pueden ser negativos.")
+                return
+            if self.segundos == 0:
+                messagebox.showerror("Error", "Los segundos no pueden ser cero.")
+                return
+  
             print(f"Segundos actualizados a: {self.segundos}")
         except ValueError:
-            print("Valor no válido para segundos")
+            messagebox.showerror("Error","Valor no válido para segundos")
 
+    
     def start_thread(self):
         
         goValidation = True
@@ -172,11 +211,19 @@ class AppWindow(ttk.Window):
 
 
         if goValidation == True:
+            
+            self.x_data, self.y_data, = [], []
+        
+            self.x1_data, self.y1_data = [], []
+        
+        
+            self.x2_data, self.y2_data = [], []
+            
             t = threading.Thread(target=self.listen_tcp)
             t.daemon = True
             t.start()
             print(f"Iniciando monitoreo con amplitud={self.amplitud}, hz={self.hz}, segundos={self.segundos}")
-            self.iniciar_monitor_alert(self)
+            #self.iniciar_monitor_alert()
 
     def listen_tcp(self):
         HOST = "127.0.0.1"
@@ -199,11 +246,25 @@ class AppWindow(ttk.Window):
             while True:
                 data = s.recv(1024)
                 if not data:
+                 
                     break
+                
+                
                 buffer += data.decode('utf-8')
+                
                 while '\n' in buffer:
+                 
                     linea, buffer = buffer.split('\n', 1)
+                 
                     try:
+                        
+                        """"
+                        total_datos = int(self.hz * self.segundos)
+                        
+                        self.max_datos = max(10, int(total_datos * 0.1))
+                        
+                        """
+                        
                         paquete = json.loads(linea.strip())
                         x = paquete.get("x")
                         y = paquete.get("y")
@@ -214,6 +275,8 @@ class AppWindow(ttk.Window):
                             # Gráfica senoidal
                             self.x_data.append(x)
                             self.y_data.append(y)
+                            self.x_data = self.x_data[-self.max_datos:]
+                            self.y_data = self.y_data[-self.max_datos:]
                             self.ax.clear()
                             self.ax.plot(self.x_data, self.y_data, color='red', label='Señal Y')
                             self.ax.set_title("Señales Recibidas")
@@ -225,6 +288,8 @@ class AppWindow(ttk.Window):
                             # RAM
                             self.x1_data.append(x)
                             self.y1_data.append(ram)
+                            self.x1_data = self.x1_data[-self.max_datos:]
+                            self.y1_data = self.y1_data[-self.max_datos:]
                             self.ax1.clear()
                             self.ax1.plot(self.x1_data, self.y1_data, color='blue', label='RAM Total')
                             self.ax1.set_title("Uso de RAM")
@@ -236,6 +301,8 @@ class AppWindow(ttk.Window):
                             # CPU
                             self.x2_data.append(x)
                             self.y2_data.append(cpu)
+                            self.x2_data = self.x2_data[-self.max_datos:]
+                            self.y2_data = self.y2_data[-self.max_datos:]
                             self.ax2.clear()
                             self.ax2.plot(self.x2_data, self.y2_data, color='green', label='CPU Total')
                             self.ax2.set_title("Uso de CPU")
@@ -281,14 +348,15 @@ class AppWindow(ttk.Window):
         else:
             print("No hay socket TCP activo.")
 
+     
     
-    
-    def iniciar_monitor_alert(self, event):
+    """"
+    def iniciar_monitor_alert(self):
         messagebox.showinfo("Monitoreo Iniciado", "El monitoreo ha comenzado exitosamente.")
         
         self.listen_tcp(self)
         
-
+    """
 
 if __name__ == '__main__':
     app = AppWindow()
