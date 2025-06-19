@@ -15,17 +15,7 @@ WS_PORT = 8000
 app = FastAPI()
 active_connections: List[WebSocket] = []
 
-"""
-@app.websocket("/ws/datos")
-async def websocket_endpoint(websocket: WebSocket):
-    await websocket.accept()
-    active_connections.append(websocket)
-    try:
-        while True:
-            await websocket.receive_text()
-    except WebSocketDisconnect:
-        active_connections.remove(websocket)
-"""
+
 async def broadcast_data(data):
     for connection in active_connections:
         try:
