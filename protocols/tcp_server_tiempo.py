@@ -13,6 +13,7 @@ TCP_PORT = 8001
 WS_PORT = 8000
 
 app = FastAPI()
+
 active_connections: List[WebSocket] = []
 
 async def broadcast_data(data):
@@ -61,6 +62,7 @@ def start_tcp_server():
             threading.Thread(target=handle_client, args=(conn, addr), daemon=True).start()
 
 def handle_client(conn, addr):
+    #Conexion cliente
     print(f"Conexión establecida con {addr}")
 
     params = {
@@ -97,13 +99,20 @@ def handle_client(conn, addr):
                     break
                 buffer += data.decode("utf-8")
                 while "\n" in buffer:
+                    
                     linea, buffer = buffer.split("\n", 1)
+                    
                     msg = json.loads(linea.strip())
+                    
+                    
+                    
                     with lock:
                         if "stop" in msg and msg["stop"]:
                             params["stop"] = True
                         if "amplitud" in msg:
                             params["amplitud"] = float(msg["amplitud"])
+                            print("[recibir_parametros] amplitud" , params["amplitud"])
+                            
                         if "hz" in msg:
                             params["hz"] = float(msg["hz"])
                         if "segundos" in msg:
@@ -115,6 +124,7 @@ def handle_client(conn, addr):
     threading.Thread(target=recibir_parametros, daemon=True).start()
 
     cantidad_paquetes = 0
+    count_ts = 0
     start_time = time.time()
     prev_timestamp = None
 
@@ -130,16 +140,32 @@ def handle_client(conn, addr):
                 hz = params["hz"]
                 ts = 1 / hz
                 amplitud = params["amplitud"]
+
+
                 duration_seconds = params["segundos"]
 
             current_time = time.time() - start_time
+            
+            count_ts += ts
+            count_ts = round(count_ts, 2)
+            
+            #print("Spy count_ts", count_ts)
+            
+            
 
             if duration_seconds > 0 and current_time > duration_seconds:
                 time.sleep(0.1)
                 continue
 
             cantidad_paquetes += 1
-            y = amplitud * math.sin(2 * math.pi * hz * current_time)
+            frecuencia = 50
+            #y = amplitud * math.sin(2 * math.pi * frecuencia * count_ts + 4)
+
+
+            y = amplitud * math.sin(2 * math.pi * count_ts + 4)
+            print("Soy Y", y)
+            
+                #warp terminal tabby
 
             recursos = get_resource_usage()
             current_timestamp = time.time()
@@ -156,7 +182,7 @@ def handle_client(conn, addr):
                 "ram_process_mb": recursos["ram_process_mb"],
                 "ram_equipo_total": recursos["ram_equipo_total"],
                 "x": round(current_time, 2),
-                "y": round(y, 4),
+                "y": round(y,2),
                 "ts_server": time.time(),
                 "vs_code_ram": vscode_ram,
                 "cmd_ram": cmd_ram,
