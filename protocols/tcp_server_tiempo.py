@@ -1,29 +1,27 @@
-# tcp_server_tiempo.py
-
 import socket
+#sOCKET ES PARA crear y manejasr conexiones TCP
 import json
 import time
 import math
-import asyncio
 import psutil
 import threading
-from fastapi import FastAPI, WebSocket
-from typing import List
+#threading ES PARA manejar múltiples conexiones simultáneas basicamentes HILOS YA SEA PARA ENVIAR O EDITAR TRAMAS DE INFORMACIÓN
 
-# ===================== #
-#      CONFIG GLOBAL    #
-# ===================== #
+
+# ================================ #
+#      SON VARIABLES GLOBALES      #
+# ================================ #
+
 HOST = "0.0.0.0"
+#eSTE ES LA IP DONDE EL SERVIDOR ESCUCHARÁ LAS CONEXIONES (tODAS LAS INTERFACES)
 TCP_PORT = 8001
-WS_PORT = 8000
+#Esto basicamente es el port donde el servidor TCP escuchará las conexiones entrantes
+#Y ademas donde se mandar y se recibirá la información
 BUFFER_SIZE = 1024
+#BUFFER_SIZE ES EL TAMAÑO QUE SE PODRA ENVIAR Y RECIBIR EN CADA PETICIÓN LA INFORMACION
 
-app = FastAPI()
-active_connections: List[WebSocket] = []
 
-# ===================== #
-#  FUNCIONES AUXILIARES #
-# ===================== #
+# ========================== #
 
 def get_resource_usage():
     process = psutil.Process()
@@ -34,6 +32,8 @@ def get_resource_usage():
     mem_info = process.memory_info()
     ram_mb = mem_info.rss / (1024 * 1024)
     ram_percent_total = psutil.virtual_memory().percent
+    
+    #Esta funcion obtiene el uso de recursos del sistema, incluyendo CPU y RAM.
 
     return {
         "cpu_process_percent": round(cpu_percent, 2),
@@ -41,8 +41,13 @@ def get_resource_usage():
         "ram_process_mb": round(ram_mb, 2),
         "ram_equipo_total": round(ram_percent_total, 2),
     }
+    
+    #Y despues basicamente lo retorno con un array lleno de objectos con los datos de uso de recursos
+    #Psra acceder a los datos con la funcion de mandar datos por socket
 
 def get_ram_usage_by_name(target_name: str):
+    #Esta funcion busca procesos que se estan cargando en segundos planos que contanga
+    #tzarget_name en su nombre y retorna el uso de RAM en MB
     total_ram = 0.0
     for proc in psutil.process_iter(['name', 'memory_info']):
         try:
@@ -53,35 +58,47 @@ def get_ram_usage_by_name(target_name: str):
             continue
     return round(total_ram, 2) if total_ram > 0 else None
 
-async def broadcast_data(data):
-    for connection in active_connections:
-        try:
-            await connection.send_json(data)
-        except:
-            active_connections.remove(connection)
-
 # ========================== #
 #     CLASE: TCPHandler      #
 # ========================== #
 
 class TCPHandler:
+    #Se encarga de manejar la conexión TCP con un cliente específico o 
+    #Varios cleientes a la vez, recibiendo y enviando datos de forma concurrente.
     def __init__(self, conn, addr):
         self.conn = conn
         self.addr = addr
+        #Guardamos la conexion TCP y la dirección del cliente
         self.params = {"amplitud": 30.0, "hz": 100.0, "segundos": 0, "stop": False}
+        
+        #Definimos los parámetros iniciales que se pueden modificar
+        
         self.lock = threading.Lock()
+        #Este es unlock que ayuda a proteger la lectura y la escritura de los parámetros (osea editar los parámetros)
+        #Cuando se modifican desde múltiples hilos, evitando condiciones de carrera.
 
     def receive_initial_config(self):
+        #En esta funcion se van a recbir los primero paramentos de configuración del cliente
         buffer = ""
         try:
             while not buffer.endswith("\n"):
                 buffer += self.conn.recv(BUFFER_SIZE).decode("utf-8")
+                #Aqui todos los datos que se reciban del cliente se van a guardar en el buffer
+                #Y los separamos por un salto de línea
             config = json.loads(buffer.strip())
+            
+            #En config todos los datos que se recibieron del cliente se van a guardar en un objeto JSON
+            
 
             with self.lock:
                 self.params["amplitud"] = float(config.get("amplitud", self.params["amplitud"]))
                 self.params["hz"] = float(config.get("hz", self.params["hz"]))
                 self.params["segundos"] = float(config.get("segundos", self.params["segundos"]))
+                
+                #Aqui solo se accede a lla variable config para obtener los valores de amplitud, hz y segundos y si no traen datos
+                #se les asigna el valor por defecto que se definió al inicio self.params = {"amplitud": 30.0, "hz": 100.0, "segundos": 0, "stop": False}
+                
+                
 
         except Exception as e:
             print(f"[SERVER] Error leyendo configuración inicial: {e}")
@@ -118,24 +135,23 @@ class TCPHandler:
         vscode_ram = get_ram_usage_by_name("Code.exe")
         cmd_ram = get_ram_usage_by_name("cmd.exe")
 
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-
         try:
             while not self.params["stop"]:
                 with self.lock:
                     ts = 1 / self.params["hz"]
                     amplitud = self.params["amplitud"]
                     duracion = self.params["segundos"]
+                    hz = self.params["hz"]
 
                 current_time = time.time() - start_time
-                count_ts = round(count_ts + ts, 2)
+                count_ts = round(count_ts + ts, 4)  # mejor precisión para tiempo
 
                 if duracion > 0 and current_time > duracion:
                     time.sleep(0.1)
                     continue
 
                 y = amplitud * math.sin(2 * math.pi * count_ts + 4)
+                
                 recursos = get_resource_usage()
                 cantidad_paquetes += 1
 
@@ -145,11 +161,11 @@ class TCPHandler:
 
                 data = {
                     "cantidad_paquetes": cantidad_paquetes,
-                    "tiempo_transcurrido": round(current_time, 2),
-                    "hz": self.params["hz"],
+                    "tiempo_transcurrido": round(current_time, 4),
+                    "hz": hz,
                     "ts": ts,
-                    "x": round(current_time, 2),
-                    "y": round(y, 2),
+                    "x": round(current_time, 4),
+                    "y": round(y, 4),
                     "ts_server": timestamp_now,
                     "delta_t": round(delta_t, 6) if delta_t else None,
                     **recursos,
@@ -159,7 +175,6 @@ class TCPHandler:
 
                 mensaje = json.dumps(data) + "\n"
                 self.conn.sendall(mensaje.encode("utf-8"))
-                loop.run_until_complete(broadcast_data(data))
                 time.sleep(ts)
 
         except Exception as e:
@@ -203,5 +218,5 @@ if __name__ == "__main__":
     tcp_thread = threading.Thread(target=tcp_server.start, daemon=True)
     tcp_thread.start()
 
-    import uvicorn
-    uvicorn.run(app, host=HOST, port=WS_PORT)
+    # Solo el servidor TCP, no WebSocket ni FastAPI
+    tcp_thread.join()  # Para que el hilo principal espere al servidor TCP
