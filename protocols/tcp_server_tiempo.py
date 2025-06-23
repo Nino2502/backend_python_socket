@@ -1,27 +1,29 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+# tcp_server_tiempo.py
+
 import socket
 import json
 import time
 import math
 import asyncio
 import psutil
-from typing import List
 import threading
+from fastapi import FastAPI, WebSocket
+from typing import List
 
+# ===================== #
+#      CONFIG GLOBAL    #
+# ===================== #
 HOST = "0.0.0.0"
 TCP_PORT = 8001
 WS_PORT = 8000
+BUFFER_SIZE = 1024
 
 app = FastAPI()
-
 active_connections: List[WebSocket] = []
 
-async def broadcast_data(data):
-    for connection in active_connections:
-        try:
-            await connection.send_json(data)
-        except:
-            active_connections.remove(connection)
+# ===================== #
+#  FUNCIONES AUXILIARES #
+# ===================== #
 
 def get_resource_usage():
     process = psutil.Process()
@@ -51,159 +53,155 @@ def get_ram_usage_by_name(target_name: str):
             continue
     return round(total_ram, 2) if total_ram > 0 else None
 
-def start_tcp_server():
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
-        server.bind((HOST, TCP_PORT))
-        server.listen()
-        print(f"Servidor TCP escuchando en {HOST}:{TCP_PORT}")
+async def broadcast_data(data):
+    for connection in active_connections:
+        try:
+            await connection.send_json(data)
+        except:
+            active_connections.remove(connection)
 
-        while True:
-            conn, addr = server.accept()
-            threading.Thread(target=handle_client, args=(conn, addr), daemon=True).start()
+# ========================== #
+#     CLASE: TCPHandler      #
+# ========================== #
 
-def handle_client(conn, addr):
-    #Conexion cliente
-    print(f"Conexión establecida con {addr}")
+class TCPHandler:
+    def __init__(self, conn, addr):
+        self.conn = conn
+        self.addr = addr
+        self.params = {"amplitud": 30.0, "hz": 100.0, "segundos": 0, "stop": False}
+        self.lock = threading.Lock()
 
-    params = {
-        "amplitud": 30.0,
-        "hz": 100.0,
-        "segundos": 0,
-        "stop": False
-    }
-    lock = threading.Lock()
-
-    try:
+    def receive_initial_config(self):
         buffer = ""
-        while not buffer.endswith("\n"):
-            buffer += conn.recv(1024).decode("utf-8")
-        init_config = json.loads(buffer.strip())
-        with lock:
-            if "amplitud" in init_config:
-                params["amplitud"] = float(init_config["amplitud"])
-            if "hz" in init_config:
-                params["hz"] = float(init_config["hz"])
-            if "segundos" in init_config:
-                params["segundos"] = float(init_config["segundos"])
-    except Exception as e:
-        print(f"Error leyendo configuración inicial: {e}")
-        conn.close()
-        return
+        try:
+            while not buffer.endswith("\n"):
+                buffer += self.conn.recv(BUFFER_SIZE).decode("utf-8")
+            config = json.loads(buffer.strip())
 
-    def recibir_parametros():
+            with self.lock:
+                self.params["amplitud"] = float(config.get("amplitud", self.params["amplitud"]))
+                self.params["hz"] = float(config.get("hz", self.params["hz"]))
+                self.params["segundos"] = float(config.get("segundos", self.params["segundos"]))
+
+        except Exception as e:
+            print(f"[SERVER] Error leyendo configuración inicial: {e}")
+            self.conn.close()
+            return False
+        return True
+
+    def listen_for_updates(self):
         buffer = ""
-        while not params["stop"]:
+        while not self.params["stop"]:
             try:
-                data = conn.recv(1024)
+                data = self.conn.recv(BUFFER_SIZE)
                 if not data:
                     break
                 buffer += data.decode("utf-8")
                 while "\n" in buffer:
-                    
                     linea, buffer = buffer.split("\n", 1)
-                    
                     msg = json.loads(linea.strip())
-                    
-                    
-                    
-                    with lock:
-                        if "stop" in msg and msg["stop"]:
-                            params["stop"] = True
-                        if "amplitud" in msg:
-                            params["amplitud"] = float(msg["amplitud"])
-                            print("[recibir_parametros] amplitud" , params["amplitud"])
-                            
-                        if "hz" in msg:
-                            params["hz"] = float(msg["hz"])
-                        if "segundos" in msg:
-                            params["segundos"] = float(msg["segundos"])
+                    with self.lock:
+                        self.params["amplitud"] = float(msg.get("amplitud", self.params["amplitud"]))
+                        self.params["hz"] = float(msg.get("hz", self.params["hz"]))
+                        self.params["segundos"] = float(msg.get("segundos", self.params["segundos"]))
+                        if msg.get("stop"):
+                            self.params["stop"] = True
             except Exception as e:
-                print(f"Error en recepción de parámetros: {e}")
+                print(f"[SERVER] Error recibiendo parámetros: {e}")
                 break
 
-    threading.Thread(target=recibir_parametros, daemon=True).start()
+    def stream_signal(self):
+        cantidad_paquetes = 0
+        count_ts = 0
+        start_time = time.time()
+        prev_timestamp = None
+        vscode_ram = get_ram_usage_by_name("Code.exe")
+        cmd_ram = get_ram_usage_by_name("cmd.exe")
 
-    cantidad_paquetes = 0
-    count_ts = 0
-    start_time = time.time()
-    prev_timestamp = None
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
 
-    vscode_ram = get_ram_usage_by_name("Code.exe")
-    cmd_ram = get_ram_usage_by_name("cmd.exe")
+        try:
+            while not self.params["stop"]:
+                with self.lock:
+                    ts = 1 / self.params["hz"]
+                    amplitud = self.params["amplitud"]
+                    duracion = self.params["segundos"]
 
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
+                current_time = time.time() - start_time
+                count_ts = round(count_ts + ts, 2)
 
-    try:
-        while not params["stop"]:
-            with lock:
-                hz = params["hz"]
-                ts = 1 / hz
-                amplitud = params["amplitud"]
+                if duracion > 0 and current_time > duracion:
+                    time.sleep(0.1)
+                    continue
 
+                y = amplitud * math.sin(2 * math.pi * count_ts + 4)
+                recursos = get_resource_usage()
+                cantidad_paquetes += 1
 
-                duration_seconds = params["segundos"]
+                timestamp_now = time.time()
+                delta_t = timestamp_now - prev_timestamp if prev_timestamp else None
+                prev_timestamp = timestamp_now
 
-            current_time = time.time() - start_time
-            
-            count_ts += ts
-            count_ts = round(count_ts, 2)
-            
-            #print("Spy count_ts", count_ts)
-            
-            
+                data = {
+                    "cantidad_paquetes": cantidad_paquetes,
+                    "tiempo_transcurrido": round(current_time, 2),
+                    "hz": self.params["hz"],
+                    "ts": ts,
+                    "x": round(current_time, 2),
+                    "y": round(y, 2),
+                    "ts_server": timestamp_now,
+                    "delta_t": round(delta_t, 6) if delta_t else None,
+                    **recursos,
+                    "vs_code_ram": vscode_ram,
+                    "cmd_ram": cmd_ram,
+                }
 
-            if duration_seconds > 0 and current_time > duration_seconds:
-                time.sleep(0.1)
-                continue
+                mensaje = json.dumps(data) + "\n"
+                self.conn.sendall(mensaje.encode("utf-8"))
+                loop.run_until_complete(broadcast_data(data))
+                time.sleep(ts)
 
-            cantidad_paquetes += 1
-            frecuencia = 50
-            #y = amplitud * math.sin(2 * math.pi * frecuencia * count_ts + 4)
+        except Exception as e:
+            print(f"[SERVER] Error durante transmisión: {e}")
+        finally:
+            print(f"[SERVER] Conexión finalizada con {self.addr}")
+            self.conn.close()
 
+    def handle(self):
+        print(f"[SERVER] Nueva conexión desde {self.addr}")
+        if self.receive_initial_config():
+            threading.Thread(target=self.listen_for_updates, daemon=True).start()
+            self.stream_signal()
 
-            y = amplitud * math.sin(2 * math.pi * count_ts + 4)
-            print("Soy Y", y)
-            
-                #warp terminal tabby
+# ========================== #
+#     CLASE: TCPServer       #
+# ========================== #
 
-            recursos = get_resource_usage()
-            current_timestamp = time.time()
-            delta_t = current_timestamp - prev_timestamp if prev_timestamp else None
-            prev_timestamp = current_timestamp
+class TCPServer:
+    def __init__(self, host=HOST, port=TCP_PORT):
+        self.host = host
+        self.port = port
 
-            data = {
-                "cantidad_paquetes": cantidad_paquetes,
-                "tiempo_transcurrido": round(current_time, 2),
-                "hz": hz,
-                "ts": ts,
-                "cpu_process_percent": recursos["cpu_process_percent"],
-                "cpu_equipo_total": recursos["cpu_equipo_total"],
-                "ram_process_mb": recursos["ram_process_mb"],
-                "ram_equipo_total": recursos["ram_equipo_total"],
-                "x": round(current_time, 2),
-                "y": round(y,2),
-                "ts_server": time.time(),
-                "vs_code_ram": vscode_ram,
-                "cmd_ram": cmd_ram,
-                "delta_t": round(delta_t, 6) if delta_t else None,
-            }
+    def start(self):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
+            server.bind((self.host, self.port))
+            server.listen()
+            print(f"[SERVER] TCP escuchando en {self.host}:{self.port}")
 
-            mensaje = json.dumps(data) + "\n"
-            conn.sendall(mensaje.encode("utf-8"))
-            loop.run_until_complete(broadcast_data(data))
-            time.sleep(ts)
+            while True:
+                conn, addr = server.accept()
+                handler = TCPHandler(conn, addr)
+                threading.Thread(target=handler.handle, daemon=True).start()
 
-    except Exception as e:
-        print(f"Error durante transmisión: {e}")
-    finally:
-        print(f"Conexión con {addr} finalizada.")
-        conn.close()
+# =========================== #
+#       MAIN: Run server      #
+# =========================== #
 
 if __name__ == "__main__":
-    tcp_thread = threading.Thread(target=start_tcp_server)
-    tcp_thread.daemon = True
+    tcp_server = TCPServer()
+    tcp_thread = threading.Thread(target=tcp_server.start, daemon=True)
     tcp_thread.start()
 
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=WS_PORT)
+    uvicorn.run(app, host=HOST, port=WS_PORT)
