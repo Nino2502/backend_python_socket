@@ -9,7 +9,9 @@ import threading
 
 
 # ================================ #
-#      SON VARIABLES GLOBALES      #
+# Autor: Jesus Gonzalez Leal (Nino :3)
+# Fecha: 24 de junio del 2025      #
+# Ultima modificacion: 24 de nunio del 2025
 # ================================ #
 
 HOST = "0.0.0.0"
@@ -32,7 +34,7 @@ def get_resource_usage():
     mem_info = process.memory_info()
     ram_mb = mem_info.rss / (1024 * 1024)
     ram_percent_total = psutil.virtual_memory().percent
-    
+
     #Esta funcion obtiene el uso de recursos del sistema, incluyendo CPU y RAM.
 
     return {
@@ -41,7 +43,7 @@ def get_resource_usage():
         "ram_process_mb": round(ram_mb, 2),
         "ram_equipo_total": round(ram_percent_total, 2),
     }
-    
+
     #Y despues basicamente lo retorno con un array lleno de objectos con los datos de uso de recursos
     #Psra acceder a los datos con la funcion de mandar datos por socket
 
@@ -69,10 +71,10 @@ class TCPHandler:
         self.conn = conn
         self.addr = addr
         #Guardamos la conexion TCP y la dirección del cliente
-        self.params = {"amplitud": 30.0, "hz": 100.0, "segundos": 0, "stop": False}
-        
+        self.params = {"amplitud": 30.0, "hz": 100.0, "stop": False}
+
         #Definimos los parámetros iniciales que se pueden modificar
-        
+
         self.lock = threading.Lock()
         #Este es unlock que ayuda a proteger la lectura y la escritura de los parámetros (osea editar los parámetros)
         #Cuando se modifican desde múltiples hilos, evitando condiciones de carrera.
@@ -86,19 +88,12 @@ class TCPHandler:
                 #Aqui todos los datos que se reciban del cliente se van a guardar en el buffer
                 #Y los separamos por un salto de línea
             config = json.loads(buffer.strip())
-            
+
             #En config todos los datos que se recibieron del cliente se van a guardar en un objeto JSON
-            
 
             with self.lock:
                 self.params["amplitud"] = float(config.get("amplitud", self.params["amplitud"]))
                 self.params["hz"] = float(config.get("hz", self.params["hz"]))
-                self.params["segundos"] = float(config.get("segundos", self.params["segundos"]))
-                
-                #Aqui solo se accede a lla variable config para obtener los valores de amplitud, hz y segundos y si no traen datos
-                #se les asigna el valor por defecto que se definió al inicio self.params = {"amplitud": 30.0, "hz": 100.0, "segundos": 0, "stop": False}
-                
-                
 
         except Exception as e:
             print(f"[SERVER] Error leyendo configuración inicial: {e}")
@@ -109,18 +104,22 @@ class TCPHandler:
     def listen_for_updates(self):
         buffer = ""
         while not self.params["stop"]:
+            #Aqui validamos que no se mande el parametro ["stop"] Y para que no se detenga
             try:
                 data = self.conn.recv(BUFFER_SIZE)
+                #Escucha los parametros editados en tiempo real para que te puedas volver a mandar los datos
                 if not data:
                     break
                 buffer += data.decode("utf-8")
+                #Aqui todos los datos los ponemos en formato UTF-8
                 while "\n" in buffer:
+                    #Aqui creamos un bucle que la variable buffer contenga saltos de línea
                     linea, buffer = buffer.split("\n", 1)
                     msg = json.loads(linea.strip())
                     with self.lock:
+                        #Aqui se bloquea el acceso a los parámetros para evitar condiciones de carrera (osea de modulo que se edite al mismo tiempo)
                         self.params["amplitud"] = float(msg.get("amplitud", self.params["amplitud"]))
                         self.params["hz"] = float(msg.get("hz", self.params["hz"]))
-                        self.params["segundos"] = float(msg.get("segundos", self.params["segundos"]))
                         if msg.get("stop"):
                             self.params["stop"] = True
             except Exception as e:
@@ -140,18 +139,13 @@ class TCPHandler:
                 with self.lock:
                     ts = 1 / self.params["hz"]
                     amplitud = self.params["amplitud"]
-                    duracion = self.params["segundos"]
                     hz = self.params["hz"]
 
                 current_time = time.time() - start_time
                 count_ts = round(count_ts + ts, 4)  # mejor precisión para tiempo
 
-                if duracion > 0 and current_time > duracion:
-                    time.sleep(0.1)
-                    continue
-
                 y = amplitud * math.sin(2 * math.pi * count_ts + 4)
-                
+
                 recursos = get_resource_usage()
                 cantidad_paquetes += 1
 
@@ -184,10 +178,26 @@ class TCPHandler:
             self.conn.close()
 
     def handle(self):
+        #Cuando el cliente se conecta al servidor entra a esta funcion
         print(f"[SERVER] Nueva conexión desde {self.addr}")
         if self.receive_initial_config():
+            #Aqui con el if validamos que el usuario haya mandado correctamente los datos (parametros)
+            #Tiene que regresar un TRUE esto significa que se devuelve un true es que 
+            #Se actualizaron los parametros sin problema
             threading.Thread(target=self.listen_for_updates, daemon=True).start()
+            #Se inicia un hilo (osea un proceso) para recibir las actualizaciones de los parametros
+
             self.stream_signal()
+            #Y en hilo actual (el primer proceso se mandara y empezara a mandar señales senoidal)
+
+            #===============================================================================#
+            # Esta funcion es muy impotante ya que se manejan 2 hilos (osea 2 procesos)     #
+            # Esta funcion recibe 2 tipos de hilos:                                         #
+            # 1. El hilo que recibe los parametros de configuracion inicial del cliente     #
+            # 2. El hilo que escucha las actualizaciones de los parametros en tiempo real   #
+            # 3. El hilo que transmite la señal senoidal al cliente                         #
+            #===============================================================================#
+
 
 # ========================== #
 #     CLASE: TCPServer       #
@@ -203,11 +213,12 @@ class TCPServer:
             server.bind((self.host, self.port))
             server.listen()
             print(f"[SERVER] TCP escuchando en {self.host}:{self.port}")
-
             while True:
+                #Aqui recibimos la nueva conexion que viene desde el archivo app_windows (tcp_client)
                 conn, addr = server.accept()
                 handler = TCPHandler(conn, addr)
                 threading.Thread(target=handler.handle, daemon=True).start()
+                #De aqui se manda a llamar a la siguiente funcion handler.handle()
 
 # =========================== #
 #       MAIN: Run server      #

@@ -51,6 +51,10 @@ class AppWindow(ttk.Window):
           
         self.tcp_socket = None
         
+        self.recibiendo_datos = False
+        self.hilo_recepcion = None
+
+        
 
     
 
@@ -99,12 +103,14 @@ class AppWindow(ttk.Window):
         self.entrada_hz.grid(row=0, column=4, sticky='ew', padx=5)
      
 
+        """"
         # Segundos
         ttk.Label(controles_frame, text="Segundos:", font=("Segoe UI", 12)).grid(row=0, column=6, sticky='e', padx=5)
         self.entrada_segundos = ttk.Entry(controles_frame, width=10, font=("Segoe UI", 10))
         self.entrada_segundos.insert(0, str(self.segundos))
         self.entrada_segundos.grid(row=0, column=7, sticky='ew', padx=5)
        
+       """
         # Iniciar Monitoreo
         ttk.Button(controles_frame, text="Iniciar Monitoreo", bootstyle='success outline', width=60, command=self.start_client).grid(
             row=0, column=9, padx=5, pady=5, sticky='ew')
@@ -200,31 +206,10 @@ class AppWindow(ttk.Window):
         except ValueError:
             messagebox.showerror("Error","Valor no válido para Hz")
             goValidation = False
-        try:
-            
-            self.segundos = float(self.entrada_segundos.get())
-            
-            if self.segundos <= 0:
-                messagebox.showerror("Error", "Los segundos deben ser mayores que 0.")
-                goValidation = False
-                
-                return
-            if self.segundos < 0:
-                messagebox.showerror("Error", "Los segundos no pueden ser negativos.")
-                goValidation = False
-                return
-            if self.segundos == 0:
-                messagebox.showerror("Error", "Los segundos no pueden ser cero.")
-                goValidation = False
-                return
-  
-            print(f"Segundos actualizados a: {self.segundos}")
-        except ValueError:
-            messagebox.showerror("Error","Valor no válido para segundos")
-            goValidation = False
 
 
-        if goValidation == True:
+
+        if goValidation == True: 
             
             self.x_data, self.y_data, = [], []
         
@@ -239,31 +224,48 @@ class AppWindow(ttk.Window):
             
             try:
                 print("Se va a conectar al servidor")
+                #Aqui se va a conectar al servidor Socket
                 s.connect((HOST, PORT))
                 
                 init_config = {
                     "amplitud": self.amplitud,
                     "hz": self.hz,
-                    "segundos": self.segundos
                 }
-                
+                #Aqui mandamos la primera configuracion inicial para hacer las graficas senoidales
+                #Estos datos de mandara al archivo tcp_server_tiempo en la funcion [ **def receive_initial_config(self)** ]                
                 s.sendall((json.dumps(init_config) + '\n').encode('utf-8'))
                 
                 print(f"[CLIENT] Connected to {HOST} : {PORT} AYUDA POR FAVOR !!!!!!!!")
                 
-                #RECIBIR DATOS DESDE EL SERVIDOR FROM THE SERVER
                 
+                #Aqui el cliente recibe datos en tiempo real
                 recibir_trama = threading.Thread(target=self.recibir_data, args=(s,))
                 recibir_trama.daemon = True
                 recibir_trama.start()
+                #Aqui este hilo manda a llamar a mostrar_information() que recibe los datos del servidor
+                #y los procesa para actualizar las graficas
                 
-                #Actualizar nuevos parametros para las graficas
+                
+                
+                #Este hilo se ejecuta en el cliente
                 send_thread = threading.Thread(target=self.send_parameters, args=(s,))
                 send_thread.daemon = True
                 send_thread.start()
                 
+                #=======================================#
+                #  En la funcion en la send_parameters se envia el mensaje al servidor cada segundo
+                # Y esta funcion se mandara al servidor en la funcion listen_for_updates() 
+                # Y se actulizan los valores con self.lock
+                """""
+                {
+                    "amplitud": ..., 
+                    "hz": ..., 
+                    "segundos": ...
+                    #Esta informacion se envia al servidor cada segundo
                     
-                
+                }
+                """""
+  
             except ConnectionRefusedError:
                 print("No se logro conectar al servidor TCP :c ")
 
@@ -401,15 +403,13 @@ class AppWindow(ttk.Window):
             try:
                 # Leer los valores de las entradas
                 amplitud = self.entrada_amplitud.get()
-                hz = self.entrada_hz.get()
-                segundos = self.entrada_segundos.get()
+                hz = self.entrada_hz.get()   
                 
                 # Crear el mensaje JSON
                 message = {
                     "amplitud": amplitud,
                     "hz": hz,
-                    "segundos": segundos
-                }
+                } 
                 
                 # Enviar el mensaje al servidor
                 socket.sendall((json.dumps(message) + '\n').encode('utf-8'))
@@ -421,121 +421,7 @@ class AppWindow(ttk.Window):
                 break
     
     
-    def listen_tcp(self):
-        HOST = "127.0.0.1"
-        PORT = 8001
-        buffer = ""
-
-        # Guardamos el socket en la instancia para acceder desde stop_monitor
-        self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s = self.tcp_socket
-
-        try:
-            s.connect((HOST, PORT))
-            config = {
-                "amplitud": self.amplitud,
-                "hz": self.hz,
-                "segundos": self.segundos
-            }
-            s.sendall((json.dumps(config) + '\n').encode('utf-8'))
-
-            while True:
-                self.data = s.recv(1024)
-                if not self.data:
-                 
-                    break
-                
-                
-                buffer += self.data.decode('utf-8')
-                
-                while '\n' in buffer:
-                 
-                    linea, buffer = buffer.split('\n', 1)
-                 
-                    try:
-
-                        paquete = json.loads(linea.strip())
-                        
-                        
-                        self.historial_datos.append({
-                            "cantidad_paquetes": paquete.get("cantidad_paquetes", 0),
-                            "tiempo": paquete.get("tiempo_transcurrido",""),
-                            "hz": paquete.get("hz", 0),
-                            "x_paquetes": paquete.get("delta_t", ""),
-                            "cpu_percent": paquete.get("cpu_process_percent", ""),
-                            "cpu_equipo_total": paquete.get("cpu_equipo_total", ""),
-                            "ram_mb": paquete.get("ram_process_mb", ""),
-                            "ram_equipo_total": paquete.get("ram_equipo_total", ""),
-                            "vs_code_ram": paquete.get("vs_code_ram", ""),
-                            "cmd_exe_ram": paquete.get("cmd_ram", "")
-                        })
-                                                
-                        x = paquete.get("x")
-                        y = paquete.get("y")
-                        
-                        print("[DATA_JSON] with Y", y)
-                        
-                        print("[DATA_JSON] with X", x)
-                        
-                        
-                        ram = paquete.get("ram_equipo_total")
-                        cpu = paquete.get("cpu_equipo_total", 0)
-
-                        if x is not None and y is not None:
-                            # Gráfica senoidal
-                            self.x_data.append(x)
-                            self.y_data.append(y)
-                            self.x_data = self.x_data[-self.max_datos:]
-                            self.y_data = self.y_data[-self.max_datos:]
-                            self.ax.clear()
-                            self.ax.plot(self.x_data, self.y_data, color='red', label='Señal Y')
-                            self.ax.set_title("Señales Recibidas")
-                            self.ax.set_xlabel("Tiempo")
-                            self.ax.set_ylabel("Amplitud")
-                            self.ax.legend()
-                            self.canvas.draw()
-
-                            # RAM
-                            self.x1_data.append(x)
-                            self.y1_data.append(ram)
-                            self.x1_data = self.x1_data[-self.max_datos:]
-                            self.y1_data = self.y1_data[-self.max_datos:]
-                            self.ax1.clear()
-                            self.ax1.plot(self.x1_data, self.y1_data, color='blue', label='RAM Total')
-                            self.ax1.set_title("Uso de RAM")
-                            self.ax1.set_xlabel("Tiempo")
-                            self.ax1.set_ylabel("RAM (MB)")
-                            self.ax1.legend()
-                            self.canvas1.draw()
-
-                            # CPU
-                            self.x2_data.append(x)
-                            self.y2_data.append(cpu)
-                            self.x2_data = self.x2_data[-self.max_datos:]
-                            self.y2_data = self.y2_data[-self.max_datos:]
-                            self.ax2.clear()
-                            self.ax2.plot(self.x2_data, self.y2_data, color='green', label='CPU Total')
-                            self.ax2.set_title("Uso de CPU")
-                            self.ax2.set_xlabel("Tiempo")
-                            self.ax2.set_ylabel("CPU (%)")
-                            self.ax2.legend()
-                            self.canvas2.draw()
-
-                        if paquete.get("fin"):
-                            print("Transmisión finalizada por el servidor.")
-                            return
-                    except json.JSONDecodeError:
-                        continue
-        except Exception as e:
-            print(f"Error en conexión TCP: {e}")
-        finally:
-            if self.tcp_socket:
-                try:
-                    self.tcp_socket.close()
-                except:
-                    pass
-                self.tcp_socket = None
-
+   
 
     def run(self):
         self.mainloop()
