@@ -120,13 +120,19 @@ class AppWindow(ttk.Window):
         ttk.Button(controles_frame, 
                  text="Iniciar/Actualizar Monitoreo", 
                  bootstyle='success outline', 
-                 command=self.start_client).grid(row=0, column=9, padx=5, pady=5, sticky='ew')
+                 command=self.start_client).grid(row=0, column=9, padx=5, pady=5, sticky='ew', ipadx=20, ipady=10)
 
         # Botón para detener monitoreo
         ttk.Button(controles_frame, 
                  text="Detener Monitoreo", 
                  bootstyle='danger outline', 
-                 command=self.stop_monitor).grid(row=0, column=10, padx=5, pady=5, sticky='ew')
+                 command=self.stop_monitor).grid(row=0, column=10, padx=5, pady=5, sticky='ew', ipadx=20, ipady=10)
+        
+        # Responsive columns
+        controles_frame.columnconfigure(1, weight=1)
+        controles_frame.columnconfigure(4, weight=1)
+        controles_frame.columnconfigure(9, weight=1)
+        controles_frame.columnconfigure(10, weight=1)
         
         
             # Contenedor para las gráficas
