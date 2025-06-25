@@ -1,21 +1,27 @@
 """
 CLIENTE TCP PARA MONITOREO DE SEÑALES EN TIEMPO REAL
-Autor: [Tu Nombre]
-Fecha: [Fecha]
+Autor: Jesus González Leal (Nino :3)
+Fecha: 23 de junio de 2025
 Descripción: Este programa conecta con un servidor TCP para recibir y graficar señales senoidales
              junto con métricas de sistema (CPU/RAM) en tiempo real.
 """
 import csv
+#Para poder guaradar los datos en un archivo CSV
 import ttkbootstrap as ttk
+# Para la interfaz gráfica y estilos
 from ttkbootstrap.constants import *
 from tkinter import filedialog, messagebox
 import matplotlib.pyplot as plt
+# Para la visualización de gráficos
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import threading
+#Para poder o ejecutar diversos hilos
 import socket
+# Para manejar la conexión TCP
 import json
+#Para manejar la comunicación TCP y el formato JSON
 import time
-import tkinter as tk
+import tkinter as tk 
 
 class AppWindow(ttk.Window):
     def __init__(self):
@@ -212,9 +218,6 @@ class AppWindow(ttk.Window):
                 messagebox.showinfo("Éxito", "Archivo CSV exportado correctamente.")
             except Exception as e:
                 messagebox.showerror("Error", f"No se pudo guardar el archivo CSV: {e}")
-            
-        
-          
 
     def start_client(self):
         """
@@ -387,6 +390,17 @@ class AppWindow(ttk.Window):
         2. Cierra socket
         3. Detiene actualización gráfica
         """
+        
+        self.x1_data, self.y1_data = [], []
+        self.x2_data, self.y2_data = [], []
+        
+        self.ax1.clear()
+        
+        self.ax2.clear()
+         
+        # Limpia los buffers de datos
+
+        
         self._refrescando = False
         self.recibiendo_datos = False
         

@@ -5,6 +5,9 @@ import time
 import math
 import psutil
 import threading
+
+import signal
+
 #threading ES PARA manejar múltiples conexiones simultáneas basicamentes HILOS YA SEA PARA ENVIAR O EDITAR TRAMAS DE INFORMACIÓN
 
 
@@ -207,23 +210,41 @@ class TCPServer:
     def __init__(self, host=HOST, port=TCP_PORT):
         self.host = host
         self.port = port
+        
+        self.running = False
+        signal.signal(signal.SIGINT, self.signal_handler)
 
+
+    def signal_handler(self, signum, frame):
+        print("\n[SERVER] Interrupción recibida, cerrando el servidor...")
+        self.running = False
+        #Aqui se maneja la señal de interrupción (Ctrl+C) para cerrar el servidor de forma segura
+        
+        
     def start(self):
+        self.running = True
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
             server.bind((self.host, self.port))
             server.listen()
+            server.settimeout(1.0)
             print(f"[SERVER] TCP escuchando en {self.host}:{self.port}")
-            while True:
-                #Aqui recibimos la nueva conexion que viene desde el archivo app_windows (tcp_client)
-                conn, addr = server.accept()
-                handler = TCPHandler(conn, addr)
-                threading.Thread(target=handler.handle, daemon=True).start()
-                #De aqui se manda a llamar a la siguiente funcion handler.handle()
+            while self.running:
+                
+                try:
+                    conn, addr = server.accept()
+                    handler = TCPHandler(conn, addr)
+                    threading.Thread(target=handler.handle, daemon=True).start()
+                except socket.timeout:
+                    continue
+                except Exception as e:
+                    print(f"[SERVER] Error al aceptar conexión: {e}")
+                        
+    
 
 # =========================== #
 #       MAIN: Run server      #
 # =========================== #
-
+""""
 if __name__ == "__main__":
     tcp_server = TCPServer()
     tcp_thread = threading.Thread(target=tcp_server.start, daemon=True)
@@ -231,3 +252,17 @@ if __name__ == "__main__":
 
     # Solo el servidor TCP, no WebSocket ni FastAPI
     tcp_thread.join()  # Para que el hilo principal espere al servidor TCP
+    
+"""
+if __name__ == "__main__":
+    tcp_server = TCPServer()
+    tcp_thread = threading.Thread(target=tcp_server.start)
+    tcp_thread.start()
+
+    try:
+        while tcp_thread.is_alive():
+            time.sleep(0.5)
+    except KeyboardInterrupt:
+        print("\n[MAIN] KeyboardInterrupt recibido, cerrando...")
+        tcp_server.running = False
+        tcp_thread.join()
