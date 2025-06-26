@@ -147,6 +147,7 @@ class TCPHandler:
                 current_time = time.time() - start_time
                 count_ts = round(count_ts + ts, 4)  # mejor precisión para tiempo
 
+                
                 y = amplitud * math.sin(2 * math.pi * count_ts + 4)
 
                 recursos = get_resource_usage()
@@ -262,7 +263,11 @@ if __name__ == "__main__":
     try:
         while tcp_thread.is_alive():
             time.sleep(0.5)
+            #
     except KeyboardInterrupt:
         print("\n[MAIN] KeyboardInterrupt recibido, cerrando...")
         tcp_server.running = False
         tcp_thread.join()
+        
+        #Descargar WSL UBUNTU LTS 24.04 
+        #CPU NUCLEOS

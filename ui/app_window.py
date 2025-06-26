@@ -1,10 +1,3 @@
-"""
-CLIENTE TCP PARA MONITOREO DE SEÑALES EN TIEMPO REAL
-Autor: Jesus González Leal (Nino :3)
-Fecha: 23 de junio de 2025
-Descripción: Este programa conecta con un servidor TCP para recibir y graficar señales senoidales
-             junto con métricas de sistema (CPU/RAM) en tiempo real.
-"""
 import csv
 #Para poder guaradar los datos en un archivo CSV
 import ttkbootstrap as ttk
@@ -21,7 +14,15 @@ import socket
 import json
 #Para manejar la comunicación TCP y el formato JSON
 import time
-import tkinter as tk 
+import tkinter as tk
+
+# ================================ #
+# Autor: Jesus Gonzalez Leal (Nino :3)
+# Fecha: 26 de junio del 2025      #
+# Ultima modificacion: 25 de nunio del 2025
+# ================================ #
+
+
 
 class AppWindow(ttk.Window):
     def __init__(self):
@@ -32,11 +33,15 @@ class AppWindow(ttk.Window):
         # ============================== #
         #     VARIABLES DE CONFIGURACIÓN #
         # ============================== #
+        
+        #self.segundos = 15
         self.amplitud = 0      # Amplitud de la señal senoidal
         self.hz = 0            # Frecuencia de la señal en Hz
-        self.max_datos = 20    # Máximo de puntos mostrados en gráfica
+        self.max_datos = 30    # Máximo de puntos mostrados en gráfica
         self.data_lock = threading.Lock()  # Lock para seguridad en hilos
         self.historial_datos = []  # Almacena todos los datos recibidos
+        
+        
 
         # Buffers para datos gráficos
         self.x_data, self.y_data = [], []    # Señal principal
@@ -79,6 +84,11 @@ class AppWindow(ttk.Window):
         # ============================================= #
         #     TÍTULO PRINCIPAL                         #
         # ============================================= #
+        
+        
+        #VENTA DE TIEMPO NO INFLUYE LOS HZ
+        #OPTIMIZAR EL CODIGO PARA QUE NO SE DETENGA EL PROCESO
+        
         ttk.Label(self.inner_frame, 
                 text="Monitoreo de Señales TCP/IP", 
                 font=("Segoe UI", 28, "bold"), 
@@ -275,6 +285,8 @@ class AppWindow(ttk.Window):
             if not self._refrescando:
                 self._refrescando = True
                 self._actualizar_grafica()
+                self._actualizar_grafica_ram_cpu()
+                
                 
         except Exception as e:
             messagebox.showerror("Error", f"Fallo en conexión: {str(e)}")
@@ -340,6 +352,17 @@ class AppWindow(ttk.Window):
         2. Redibuja la gráfica sin reiniciarla
         3. Programa próxima actualización
         """
+        
+        #ts = int((1 / self.hz) * 1000)
+        
+        hz = float(self.entrada_hz.get())
+        
+        if hz <= 0:
+            messagebox.showerror("Error", "La frecuencia (Hz) debe ser mayor que 0.")
+            return
+        
+        ts = int((1 / hz) * 1000)
+        
         if not self._refrescando:
             return
             
@@ -348,17 +371,8 @@ class AppWindow(ttk.Window):
             x_data = self.x_data[-self.max_datos:]
             y_data = self.y_data[-self.max_datos:]
             
-            x1_data = self.x1_data[-self.max_datos:]
-            y1_data = self.y1_data[-self.max_datos:]
-            
-            x2_data = self.x2_data[-self.max_datos:]
-            y2_data = self.y2_data[-self.max_datos:]
-            
-            
-
-        
         # Actualización gráfica si hay nuevos datos
-        if x_data and y_data and x1_data and y1_data and x2_data and y2_data:
+        if x_data and y_data:
             self.ax.clear()
             self.ax.plot(x_data, y_data, 'r-', label='Señal')
             self.ax.set_title("Señal en Tiempo Real")
@@ -366,28 +380,52 @@ class AppWindow(ttk.Window):
             self.ax.set_ylabel("Amplitud")
             self.ax.legend()
             self.canvas.draw()
+  
+        # Programa próxima actualización (50ms)
+        
+        
+        self.after(ts, self._actualizar_grafica)
+        
+        
+    def _actualizar_grafica_ram_cpu(self):
+        """
+        Actualización periódica de la gráfica de RAM:
+        1. Obtiene los últimos datos (con lock)
+        2. Redibuja la gráfica sin reiniciarla
+        3. Programa próxima actualización
+        """
+        if not self._refrescando:
+            return
+            
+        # Obtiene copia segura de los datos
+        with self.data_lock:
+            x1_data = self.x1_data[-self.max_datos:]
+            y1_data = self.y1_data[-self.max_datos:]
+            x2_data = self.x2_data[-self.max_datos:]
+            y2_data = self.y2_data[-self.max_datos:]
             
             
-            
+        # Actualización gráfica si hay nuevos datos
+        if x1_data and y1_data:
             self.ax1.clear()
-            self.ax1.plot(self.x1_data, self.y1_data, color='blue', label='RAM Total')
-            self.ax1.set_title("Uso de RAM")
-            self.ax1.set_xlabel("Tiempo")
-            self.ax1.set_ylabel("RAM (MB)")
+            self.ax1.plot(x1_data, y1_data, 'b-', label='RAM')
+            self.ax1.set_title("Uso de RAM en Tiempo Real")
+            self.ax1.set_xlabel("Tiempo (s)")
+            self.ax1.set_ylabel("Uso RAM (MB)")
             self.ax1.legend()
             self.canvas1.draw()
             
-            
+        if x2_data and y2_data:
             self.ax2.clear()
-            self.ax2.plot(self.x2_data, self.y2_data, color='green', label='CPU Total')
-            self.ax2.set_title("Uso de CPU")
-            self.ax2.set_xlabel("Tiempo")
-            self.ax2.set_ylabel("CPU (%)")
+            self.ax2.plot(x2_data, y2_data, 'g-', label='CPU')
+            self.ax2.set_title("Uso de CPU en Tiempo Real")
+            self.ax2.set_xlabel("Tiempo (s)")
+            self.ax2.set_ylabel("Uso CPU (%)")
             self.ax2.legend()
-            self.canvas2.draw()
-            
+            self.canvas2.draw()    
+  
         # Programa próxima actualización (50ms)
-        self.after(50, self._actualizar_grafica)
+        self.after(5000, self._actualizar_grafica_ram_cpu)    
 
     def stop_monitor(self):
         """
@@ -396,6 +434,12 @@ class AppWindow(ttk.Window):
         2. Cierra socket
         3. Detiene actualización gráfica
         """
+        
+        if not self.recibiendo_datos:
+            messagebox.showinfo("Información", "No hay monitoreo activo.")
+            return 
+        
+        self.x_data, self.y_data = [], []
         
         self.x1_data, self.y1_data = [], []
         self.x2_data, self.y2_data = [], []
