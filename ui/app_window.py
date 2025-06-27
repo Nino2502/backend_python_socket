@@ -42,6 +42,7 @@ class AppWindow(ttk.Window):
         self.max_datos = 30    # Máximo de puntos mostrados en gráfica
         self.data_lock = threading.Lock()  # Lock para seguridad en hilos
         self.historial_datos = []  # Almacena todos los datos recibidos
+        self.segundos_ventana = 3 # Ventana de tiempo para visualizar la grafica
         
         
 
@@ -101,9 +102,15 @@ class AppWindow(ttk.Window):
         # ============================================= #
         #     GRÁFICA PRINCIPAL (SEÑAL SENOIDAL)       #
         # ============================================= #
+        
+       
         self.fig, self.ax = plt.subplots()
+        
+        #self.fig, self.ax = plt.subplots()
+        
+        
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.inner_frame)
-        self.canvas.get_tk_widget().pack(pady=10, fill='both', expand=True)
+        self.canvas.get_tk_widget().pack(pady=10)
 
         # ============================================= #
         #     PANEL DE CONTROL (PARÁMETROS)            #
@@ -192,6 +199,37 @@ class AppWindow(ttk.Window):
             bootstyle='success outline',
             command=self.descargar_csv
         ).pack(fill='x', expand=True, pady=10)
+        
+    def _ajustar_tamano_graficas(self):
+        
+        factor = 2
+        
+        #Factor son lsa pulgadas que va a ver entre cada segundo
+        
+        ancho = max(4, self.segundos_ventana * factor)  # Ancho mínimo de la figura
+        
+        #El numero 4 , fija la altura en pulgadas en este caso seran 4 pulgadas 
+        
+        alto = 4
+        
+        self.fig.set_size_inches(ancho, alto, forward=True)
+        
+        # 2) Convierte a píxeles
+        dpi = self.fig.get_dpi()
+        #Esto significa puntos por pulgadas
+        
+        
+        ancho_px = int(ancho * dpi)
+        # Aqui solo tomamos nuestras dimensiones en pulgas con nuestras variables:
+        #ancho , alto y los multipliamos por dpi
+        alto_px  = int(alto  * dpi)
+
+        # 3) Redimensiona el widget de Tkinter que contiene la figura
+        widget = self.canvas.get_tk_widget()
+        widget.config(width=ancho_px, height=alto_px)
+    
+        
+        self.canvas.draw()    
         
     
     def descargar_csv(self):
@@ -404,26 +442,40 @@ class AppWindow(ttk.Window):
         else:
             hz = self.hz  # Si está vacío, usamos el último valor válido
 
-                
-
-        
         ts = int((1 / hz) * 1000)
         
         if not self._refrescando:
             return
+        
+        tamano_ventana = int(self.segundos_ventana * hz)
+    
+        if tamano_ventana < 1:
+            tamano_ventana = 1
+            
+   
             
         # Obtiene copia segura de los datos
         with self.data_lock:
-            x_data = self.x_data[-self.max_datos:]
-            y_data = self.y_data[-self.max_datos:]
+            x_data = self.x_data[-tamano_ventana:]
+            y_data = self.y_data[-tamano_ventana:]
+
             
         # Actualización gráfica si hay nuevos datos
         if x_data and y_data:
+            
+            
             self.ax.clear()
             self.ax.plot(x_data, y_data, 'r-', label='Señal')
+            
+            self._ajustar_tamano_graficas()
+            
             self.ax.set_title("Señal en Tiempo Real")
             self.ax.set_xlabel("Tiempo (s)")
             self.ax.set_ylabel("Amplitud")
+            
+            
+            self.ax.set_xlim(x_data[0], x_data[-1])  # Ajusta eje X al recorte
+            
             self.ax.legend()
             self.canvas.draw()
   
