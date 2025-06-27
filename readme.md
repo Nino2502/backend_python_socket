@@ -11,6 +11,8 @@
 
     pip install fastapi uvicorn
     pip install "uvicorn[standard]"
+    pip install ttkboostrap
+    
 
 
 
