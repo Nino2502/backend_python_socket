@@ -19,16 +19,18 @@ import tkinter as tk
 # ================================ #
 # Autor: Jesus Gonzalez Leal (Nino :3)
 # Fecha: 26 de junio del 2025      #
-# Ultima modificacion: 25 de nunio del 2025
+# Ultima modificacion: 27 de junio del 2025
 # ================================ #
 
 
 
 class AppWindow(ttk.Window):
+    #Basicamnete el ttk.Window nos va ayudar a generar una ventana para pdoder vidualizar los graficas
     def __init__(self):
         super().__init__(themename="cyborg")
         self.title("Monitor TCP/IP - Realtime Signals")
         self.geometry("1280x720")
+        #Aqui solo se asigna el titulo y el tamaño de la ventana
 
         # ============================== #
         #     VARIABLES DE CONFIGURACIÓN #
@@ -44,6 +46,8 @@ class AppWindow(ttk.Window):
         
 
         # Buffers para datos gráficos
+        #Basicammente aqui se guardan los datos que se van a graficar
+        #Que todos son ARRAYS
         self.x_data, self.y_data = [], []    # Señal principal
         self.x1_data, self.y1_data = [], []  # Datos de RAM
         self.x2_data, self.y2_data = [], []  # Datos de CPU
@@ -60,9 +64,9 @@ class AppWindow(ttk.Window):
 
     def _setup_ui(self):
         """Configura todos los elementos de la interfaz gráfica"""
-        # ============================================= #
-        #     ÁREA PRINCIPAL CON SCROLLBAR             #
-        # ============================================= #
+        #Aqui llamamos el metodo que contruye toda la interfaz grafica
+
+
         self.canvas_frame = tk.Canvas(self, highlightthickness=0)
         self.scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.canvas_frame.yview)
         self.canvas_frame.configure(yscrollcommand=self.scrollbar.set)
@@ -115,15 +119,17 @@ class AppWindow(ttk.Window):
         
 
         # Entrada para amplitud
+        # Caja de entra de amplitud
         ttk.Label(controles_frame, text="Amplitud:", font=("Segoe UI", 12)).grid(row=0, column=0, sticky='e', padx=5, pady=5)
         self.entrada_amplitud = ttk.Entry(controles_frame, width=10, font=("Segoe UI", 10))
         self.entrada_amplitud.insert(0, "10")
         self.entrada_amplitud.grid(row=0, column=1, sticky='ew', padx=5)
 
         # Entrada para frecuencia (Hz)
+        # Caja de entra de frecuencia
         ttk.Label(controles_frame, text="Hz:", font=("Segoe UI", 12)).grid(row=0, column=3, sticky='e', padx=5)
         self.entrada_hz = ttk.Entry(controles_frame, width=10, font=("Segoe UI", 10))
-        self.entrada_hz.insert(0, "10")
+        self.entrada_hz.insert(0, "10") 
         self.entrada_hz.grid(row=0, column=4, sticky='ew', padx=5)
 
         # Botón para iniciar/actualizar monitoreo
@@ -221,12 +227,12 @@ class AppWindow(ttk.Window):
                         writer.writerow([
                             idx,
                             row["cantidad_paquetes"],
-                            row["tiempo"],
+                            row["tiempo_transcurrido"],
                             row["hz"],
-                            row["x_paquetes"],
-                            row["cpu_percent"],
+                            row["ts"],
+                            row["cpu_process_percent"],
                             row["cpu_equipo_total"],
-                            row["ram_mb"],
+                            row["ram_process_mb"],
                             row["ram_equipo_total"],
                             row["vs_code_ram"],
                             row["cmd_exe_ram"]
@@ -236,26 +242,43 @@ class AppWindow(ttk.Window):
                 messagebox.showerror("Error", f"No se pudo guardar el archivo CSV: {e}")
 
     def start_client(self):
-        """
-        Maneja la conexión inicial y actualización de parámetros.
-        - Valida los valores de entrada
-        - Inicia nueva conexión o actualiza parámetros existentes
-        """
-        # Validación de parámetros
+        #Aqui en esta funcion van a ingresar las variables de la amplitud y la frecuencia
+        
         try:
-            new_amplitud = float(self.entrada_amplitud.get())
-            new_hz = float(self.entrada_hz.get())
-            if new_amplitud <= 0 or new_hz <= 0:
-                raise ValueError("Los valores deben ser positivos")
-        except Exception as e:
-            messagebox.showerror("Error", f"Valores inválidos: {str(e)}")
+            
+            # Aqui traemos la informacion de las entradas de amplitud y frecuencia strip() es para quitar los espacios en blanco
+            # De al principio y al final de la cadena
+            hz_input = self.entrada_hz.get().strip()
+            amplitud_input = self.entrada_amplitud.get().strip()
+
+            # Validamos que las entradas no esten vacias
+            if amplitud_input != "":
+                new_amplitud = float(amplitud_input)
+                if new_amplitud > 0:
+                    self.amplitud = new_amplitud
+            
+            # Validamos que la frecuencia no este vacia
+            if hz_input != "":
+                    new_hz = float(hz_input)
+                    if new_hz > 0:
+                        self.hz = new_hz
+    
+        except ValueError as e:
+            messagebox.showerror("Error", f"Valor inválido: {e}")
             return
 
-        # Conexión inicial o actualización
+        # Mira aqui validamos que exista un objet socket eso se valida en _iniciar_conexion()#
+        # Ah si asinga el socket a la variable tcp_socket no devuelve un True o False devulve un objeto socket
+        
+        #Si no existe una object tcp_socket iniciamos la conexion
         if not self.tcp_socket:
             self._iniciar_conexion()
         else:
+            #Si ya existe una conexion, simplemente enviamos los nuevos parametros
             self._enviar_parametros()
+            
+            
+            
 
     def _iniciar_conexion(self):
         """
@@ -267,14 +290,20 @@ class AppWindow(ttk.Window):
         """
         try:
             # Configuración del socket
+            #Aqui creamos el objeto socket
             self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            
+            #aqUI con el object socket nos conectamos al servidor
             self.tcp_socket.connect(("127.0.0.1", 8001))
+            
             
             # Envía parámetros iniciales
             self._enviar_parametros()
             
             # Inicia hilo para recepción de datos
             self.recibiendo_datos = True
+            
+            #Vamos a recibir datos de la conexion TCP
             threading.Thread(
                 target=self.recibir_data, 
                 args=(self.tcp_socket,), 
@@ -295,11 +324,23 @@ class AppWindow(ttk.Window):
         """Envía los parámetros actuales al servidor en formato JSON"""
         if self.tcp_socket:
             try:
+                
+                # Armas un mensaje JSON con los parámetros actuales
+                # Los vamos a conertir A JSON
+                
                 msg = {
-                    "amplitud": float(self.entrada_amplitud.get()),
-                    "hz": float(self.entrada_hz.get())
+                    "amplitud": self.amplitud,
+                    "hz": self.hz, 
                 }
+                
+                # Como ya tenemos un objeto socket activo
+                # Y simplemente enviamos el mensaje JSON al servidor con la funcion sendall
+                
                 self.tcp_socket.sendall((json.dumps(msg) + '\n').encode('utf-8'))
+                
+                # .encode('utf-8') convierte el string a bytes + \n para los saltos de línea
+                
+            
             except Exception as e:
                 print(f"[ERROR] Envío de parámetros: {e}")
 
@@ -353,13 +394,18 @@ class AppWindow(ttk.Window):
         3. Programa próxima actualización
         """
         
-        #ts = int((1 / self.hz) * 1000)
-        
-        hz = float(self.entrada_hz.get())
-        
-        if hz <= 0:
-            messagebox.showerror("Error", "La frecuencia (Hz) debe ser mayor que 0.")
-            return
+        hz_input = self.entrada_hz.get().strip()
+        if hz_input != "":
+            hz = float(hz_input)
+            if hz > 0:
+                self.hz = hz  # Actualiza la variable global
+            else:
+                raise ValueError("Hz debe ser mayor que 0")
+        else:
+            hz = self.hz  # Si está vacío, usamos el último valor válido
+
+                
+
         
         ts = int((1 / hz) * 1000)
         
@@ -385,6 +431,7 @@ class AppWindow(ttk.Window):
         
         
         self.after(ts, self._actualizar_grafica)
+        
         
         
     def _actualizar_grafica_ram_cpu(self):
