@@ -544,7 +544,8 @@ class AppWindow(ttk.Window):
             self.ax2.set_ylabel("Uso CPU (%)")
             
             
-     
+            #Aqui solo lo multiplique x 10 para visualmente rn ls grafica sale 40 y 20 pero en realidad era  4.0 y 2.0
+            #Despues lo volvi a dividir entre en 10
             if self.nucleos_fisicos:
                 promedio_fisicos = (sum(self.nucleos_fisicos) / len(self.nucleos_fisicos) * 10)
                 self.ax2.axhline(y=promedio_fisicos, color='red', linestyle='--',label=f'Núcleos Físicos ({promedio_fisicos/10})')
