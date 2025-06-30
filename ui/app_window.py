@@ -261,8 +261,9 @@ class AppWindow(ttk.Window):
             'Tiempo (ms) REAL', 
             'Hz Velocidad', 
             'Diferencia segundos paquetes',
-            'cpu_percent','cpu_equipo_total','ram_percent','ram_total_equipo',
-            'vs_code_ram', 'cmd_exe_ram']
+            'cpu_percent','cpu_equipo_total','ram_percent','ram_total_equipo'
+            #'vs_code_ram', 'cmd_exe_ram'
+            ]
         
         
         try:
@@ -281,8 +282,8 @@ class AppWindow(ttk.Window):
                         row["cpu_equipo_total"],
                         row["ram_process_mb"],
                         row["ram_equipo_total"],
-                        row["vs_code_ram"],
-                        row["cmd_exe_ram"]
+                        #row["vs_code_ram"],
+                        #row["cmd_exe_ram"]
                     ])
             messagebox.showinfo("Éxito", "Archivo CSV exportado correctamente.")
         except Exception as e:
@@ -468,8 +469,9 @@ class AppWindow(ttk.Window):
 
             self.canvas.draw()
             
-            # Repetir cada 100 ms para actualización suave
-            self.after(100, self._actualizar_grafica)
+            #Con el ts va a describir el tiempo que hay entre cada paquete::
+            self.after(ts, self._actualizar_grafica)
+            #WARNING is the code , because : Puede ocasionar cuello de botella
 
     def _actualizar_grafica_ram_cpu(self):
         """
@@ -542,7 +544,7 @@ class AppWindow(ttk.Window):
                     self.y1_data.clear()
                     self.x2_data.clear()
                     self.y2_data.clear()
-                    self.historial_datos.clear()
+                    #self.historial_datos.clear()
                 
                 # Limpia gráficas
                 self.ax.clear()
