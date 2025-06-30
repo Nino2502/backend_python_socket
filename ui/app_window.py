@@ -19,7 +19,7 @@ import tkinter as tk
 # ================================ #
 # Autor: Jesus Gonzalez Leal (Nino :3)
 # Fecha: 26 de junio del 2025      #
-# Ultima modificacion: 27 de junio del 2025
+# Ultima modificacion: 30 de junio del 2025
 # ================================ #
 
 
@@ -42,7 +42,7 @@ class AppWindow(ttk.Window):
         self.max_datos = 30    # Máximo de puntos mostrados en gráfica
         self.data_lock = threading.Lock()  # Lock para seguridad en hilos
         self.historial_datos = []  # Almacena todos los datos recibidos
-        self.segundos_ventana = 3 # Ventana de tiempo para visualizar la grafica
+        self.segundos_ventana = 0 # Ventana de tiempo para visualizar la grafica
         
         
 
@@ -106,8 +106,6 @@ class AppWindow(ttk.Window):
        
         self.fig, self.ax = plt.subplots()
         
-        #self.fig, self.ax = plt.subplots()
-        
         
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.inner_frame)
         self.canvas.get_tk_widget().pack(pady=10)
@@ -120,9 +118,6 @@ class AppWindow(ttk.Window):
                                        bootstyle="primary", 
                                        padding=15)
         controles_frame.pack(fill='x', pady=10)
-        
-        
-        
         
 
         # Entrada para amplitud
@@ -151,6 +146,8 @@ class AppWindow(ttk.Window):
                  bootstyle='danger outline', 
                  command=self.stop_monitor).grid(row=0, column=10, padx=5, pady=5, sticky='ew', ipadx=20, ipady=10)
         
+        control_grafica = ttk.Labelframe(self)
+        
         # Responsive columns
         controles_frame.columnconfigure(1, weight=1)
         controles_frame.columnconfigure(4, weight=1)
@@ -158,6 +155,28 @@ class AppWindow(ttk.Window):
         controles_frame.columnconfigure(10, weight=1)
         
         
+        
+        control_grafica = ttk.LabelFrame(self.inner_frame, text="Modificar Grafica", bootstyle= "primary", padding=15)
+        control_grafica.pack(fill='x', pady=10)
+        
+        control_grafica.grid_columnconfigure(1, weight=1)
+        control_grafica.grid_columnconfigure(4, weight=1)
+        
+        
+        ttk.Button(control_grafica,
+                   text="Modificar grafica",
+                   bootstyle='danger outline',
+                   command=self._ajustar_tamano_graficas).grid(row=0, column=1, padx=5, pady=5, sticky='ew', ipadx=20, ipady=10)
+        
+        
+        ttk.Label(control_grafica, text="Change Size", font=("Segoe UI", 12)).grid(row=0, column=3, sticky='e', padx=5)
+        
+        self.tamano_graf = ttk.Entry(control_grafica, width=10, font=("Segoe UI", 10))
+        self.tamano_graf.insert(0, self.segundos_ventana)
+        self.tamano_graf.grid(row=0, column=4, sticky='ew', padx=5, ipadx=10, ipady=10)
+        
+        
+
             # Contenedor para las gráficas
         grafica_frame = ttk.Labelframe(self.inner_frame, text="Visualización de Señales", bootstyle="danger", padding=20)
         grafica_frame.pack(fill='both', pady=10, expand=True)
@@ -201,36 +220,47 @@ class AppWindow(ttk.Window):
         ).pack(fill='x', expand=True, pady=10)
         
     def _ajustar_tamano_graficas(self):
-        
-        factor = 2
-        
-        #Factor son lsa pulgadas que va a ver entre cada segundo
-        
-        ancho = max(4, self.segundos_ventana * factor)  # Ancho mínimo de la figura
-        
-        #El numero 4 , fija la altura en pulgadas en este caso seran 4 pulgadas 
-        
-        alto = 4
-        
-        self.fig.set_size_inches(ancho, alto, forward=True)
-        
-        # 2) Convierte a píxeles
-        dpi = self.fig.get_dpi()
-        #Esto significa puntos por pulgadas
-        
-        
-        ancho_px = int(ancho * dpi)
-        # Aqui solo tomamos nuestras dimensiones en pulgas con nuestras variables:
-        #ancho , alto y los multipliamos por dpi
-        alto_px  = int(alto  * dpi)
+        tamano = self.tamano_graf.get().strip()
 
-        # 3) Redimensiona el widget de Tkinter que contiene la figura
+        # Validar si se ingresó algo
+        if not tamano:
+            messagebox.showerror("Error", "Debes ingresar un tamaño")
+            return
+
+        # Intentar convertir a entero
+        try:
+            tamano_init = int(tamano)
+        except ValueError:
+            messagebox.showerror("Error", "El tamaño debe ser un número entero")
+            return
+
+        # Validaciones del rango
+        if tamano_init <= 0:
+            messagebox.showerror("Error", "El tamaño debe ser mayor a 0")
+            return
+        if tamano_init > 60:
+            messagebox.showerror("Advertencia", "El tamaño es muy grande y puede afectar el rendimiento")
+            return
+
+     
+        self.segundos_ventana = tamano_init
+
+       
+        factor = 2
+        ancho = max(4, tamano_init * factor)
+        alto = 4
+
+        self.fig.set_size_inches(ancho, alto, forward=True)
+
+        dpi = self.fig.get_dpi()
+        ancho_px = int(ancho * dpi)
+        alto_px = int(alto * dpi)
+
         widget = self.canvas.get_tk_widget()
         widget.config(width=ancho_px, height=alto_px)
-    
-        
-        self.canvas.draw()    
-        
+
+        self.canvas.draw()
+
     
     def descargar_csv(self):
         #messagebox.showinfo("Descargar CSV","Descargando archivo csv....")
@@ -288,6 +318,8 @@ class AppWindow(ttk.Window):
             # De al principio y al final de la cadena
             hz_input = self.entrada_hz.get().strip()
             amplitud_input = self.entrada_amplitud.get().strip()
+            
+            size_graph = self.segundos_ventana
 
             # Validamos que las entradas no esten vacias
             if amplitud_input != "":
@@ -300,6 +332,12 @@ class AppWindow(ttk.Window):
                     new_hz = float(hz_input)
                     if new_hz > 0:
                         self.hz = new_hz
+                        
+            if size_graph is None or not isinstance(size_graph, int) or size_graph <= 0:
+                messagebox.showerror("Error", "Por favor asigna un tamaño válido a la gráfica")
+                return
+
+                            
     
         except ValueError as e:
             messagebox.showerror("Error", f"Valor inválido: {e}")
@@ -476,7 +514,7 @@ class AppWindow(ttk.Window):
             
             self.ax.set_xlim(x_data[0], x_data[-1])  # Ajusta eje X al recorte
             
-            self.ax.legend()
+            #self.ax.legend() --> Esto es para quitar la leyenda de las grsfica senoidal
             self.canvas.draw()
   
         # Programa próxima actualización (50ms)
@@ -511,7 +549,7 @@ class AppWindow(ttk.Window):
             self.ax1.set_title("Uso de RAM en Tiempo Real")
             self.ax1.set_xlabel("Tiempo (s)")
             self.ax1.set_ylabel("Uso RAM (MB)")
-            self.ax1.legend()
+            #self.ax1.legend()
             self.canvas1.draw()
             
         if x2_data and y2_data:
@@ -520,7 +558,7 @@ class AppWindow(ttk.Window):
             self.ax2.set_title("Uso de CPU en Tiempo Real")
             self.ax2.set_xlabel("Tiempo (s)")
             self.ax2.set_ylabel("Uso CPU (%)")
-            self.ax2.legend()
+            #self.ax2.legend()
             self.canvas2.draw()    
   
         # Programa próxima actualización (50ms)
