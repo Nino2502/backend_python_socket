@@ -42,6 +42,10 @@ class AppWindow(ttk.Window):
         self.historial_datos = []  # Almacena todos los datos recibidos
         self.segundos_ventana = 0 # Ventana de tiempo para visualizar la grafica
         
+        self.nucleos_fisicos = []
+        
+        self.nucleos_logicos = []
+        
         # Buffers para datos gráficos
         #Basicamnete aqui se guardan los datos que se van a graficar
         #Que todos son ARRAYS
@@ -419,6 +423,10 @@ class AppWindow(ttk.Window):
                         self.x2_data.append(datos["x"])
                         self.y2_data.append(datos["cpu_equipo_total"])
                         
+                        self.nucleos_fisicos.append(datos["nucleos_fisicos"])
+                        
+                        self.nucleos_logicos.append(datos["nucleos_logicos"])
+
                         self.historial_datos.append(datos)
                         
             except json.JSONDecodeError:
@@ -464,8 +472,21 @@ class AppWindow(ttk.Window):
             self.ax.set_title(f"Señal senoidal con amplitud {self.amplitud} y frecuencia {self.hz} Hz")
             self.ax.set_xlabel("Tiempo (paquetes)")
             self.ax.set_ylabel("Amplitud")
+            
+            
+            """"
+            if self.nucleos_fisicos:
+                promedio_fisicos = sum(self.nucleos_fisicos) / len(self.nucleos_fisicos)
+                self.ax.axhline(y=promedio_fisicos, color='red', linestyle='--',label=f'Núcleos Físicos ({promedio_fisicos :.1f})')
+            
+            if self.nucleos_logicos:
+                promedio_logicos = sum(self.nucleos_logicos) / len(self.nucleos_logicos)
+                self.ax.axhline(y=promedio_logicos, color='blue', linestyle='--', label=f'Núcleos Lógicos ({promedio_logicos:.1f})')
+            
+            """
+            
             self.ax.grid(True, color="gray", linestyle="--", alpha=0.5)
-            #self.ax.legend()
+            #self.ax.legend(loc='upper right')
 
             self.canvas.draw()
             
@@ -478,6 +499,11 @@ class AppWindow(ttk.Window):
         Actualización periódica de gráficas RAM y CPU:
         Similar a la principal, pero con dos gráficas independientes
         """
+        
+        
+        print(f"Soy los nucleos logicos {self.nucleos_logicos}")
+        
+        print(f"Soy los nuevos nucleos fisicos {self.nucleos_fisicos}")
         if not self._refrescando:
             return
         
@@ -501,6 +527,8 @@ class AppWindow(ttk.Window):
             
             x2 = self.x2_data[-tamano_ventana:]
             y2 = self.y2_data[-tamano_ventana:]
+            
+           
         
             self.ax1.clear()
             self.ax1.plot(x1, y1, 'b-', label='RAM')
@@ -514,7 +542,18 @@ class AppWindow(ttk.Window):
             self.ax2.set_title("Uso de CPU en Tiempo Real")
             self.ax2.set_xlabel("Tiempo (s)")
             self.ax2.set_ylabel("Uso CPU (%)")
-            #self.ax2.legend()
+            
+            
+     
+            if self.nucleos_fisicos:
+                promedio_fisicos = (sum(self.nucleos_fisicos) / len(self.nucleos_fisicos) * 10)
+                self.ax2.axhline(y=promedio_fisicos, color='red', linestyle='--',label=f'Núcleos Físicos ({promedio_fisicos/10})')
+            
+            if self.nucleos_logicos:
+                promedio_logicos = (sum(self.nucleos_logicos) / len(self.nucleos_logicos) * 10)
+                self.ax2.axhline(y=promedio_logicos, color='blue', linestyle='--', label=f'Núcleos Lógicos ({promedio_logicos/10})')
+
+            self.ax2.legend(loc='upper right')
 
             self.canvas1.draw()
             self.canvas2.draw()

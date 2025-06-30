@@ -37,7 +37,14 @@ def get_resource_usage():
     mem_info = process.memory_info()
     ram_mb = mem_info.rss / (1024 * 1024)
     ram_percent_total = psutil.virtual_memory().percent
-
+    
+    nucleos_logicos = psutil.cpu_count(logical=True)
+    
+    nucleos_fisicos = psutil.cpu_count(logical=False)
+    
+    #print(f"Núcleos físicos: {nucleos_fisicos}")
+    #print(f"Núcleos lógicos: {nucleos_logicos}")
+    
     #Esta funcion obtiene el uso de recursos del sistema, incluyendo CPU y RAM.
 
     return {
@@ -45,6 +52,8 @@ def get_resource_usage():
         "cpu_equipo_total": round(cpu_percent_total, 2),
         "ram_process_mb": round(ram_mb, 2),
         "ram_equipo_total": round(ram_percent_total, 2),
+        "nucleos_logicos" : nucleos_logicos,
+        "nucleos_fisicos" : nucleos_fisicos
     }
 
     #Y despues basicamente lo retorno con un array lleno de objectos con los datos de uso de recursos
