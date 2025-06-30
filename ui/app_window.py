@@ -1,5 +1,5 @@
 import csv
-#Para poder guaradar los datos en un archivo CSV
+#Para poder guardar los datos en un archivo CSV
 import ttkbootstrap as ttk
 # Para la interfaz gráfica y estilos
 from ttkbootstrap.constants import *
@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 # Para la visualización de gráficos
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import threading
-#Para poder o ejecutar diversos hilos
+#Para poder ejecutar diversos hilos
 import socket
 # Para manejar la conexión TCP
 import json
@@ -18,14 +18,12 @@ import tkinter as tk
 
 # ================================ #
 # Autor: Jesus Gonzalez Leal (Nino :3)
-# Fecha: 26 de junio del 2025      #
+# Fecha: 26 de junio del 2025      
 # Ultima modificacion: 30 de junio del 2025
 # ================================ #
 
-
-
 class AppWindow(ttk.Window):
-    #Basicamnete el ttk.Window nos va ayudar a generar una ventana para pdoder vidualizar los graficas
+    #Basicamnete el ttk.Window nos va ayudar a generar una ventana para poder visualizar las gráficas
     def __init__(self):
         super().__init__(themename="cyborg")
         self.title("Monitor TCP/IP - Realtime Signals")
@@ -44,10 +42,8 @@ class AppWindow(ttk.Window):
         self.historial_datos = []  # Almacena todos los datos recibidos
         self.segundos_ventana = 0 # Ventana de tiempo para visualizar la grafica
         
-        
-
         # Buffers para datos gráficos
-        #Basicammente aqui se guardan los datos que se van a graficar
+        #Basicamnete aqui se guardan los datos que se van a graficar
         #Que todos son ARRAYS
         self.x_data, self.y_data = [], []    # Señal principal
         self.x1_data, self.y1_data = [], []  # Datos de RAM
@@ -66,7 +62,6 @@ class AppWindow(ttk.Window):
     def _setup_ui(self):
         """Configura todos los elementos de la interfaz gráfica"""
         #Aqui llamamos el metodo que contruye toda la interfaz grafica
-
 
         self.canvas_frame = tk.Canvas(self, highlightthickness=0)
         self.scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.canvas_frame.yview)
@@ -90,10 +85,6 @@ class AppWindow(ttk.Window):
         #     TÍTULO PRINCIPAL                         #
         # ============================================= #
         
-        
-        #VENTA DE TIEMPO NO INFLUYE LOS HZ
-        #OPTIMIZAR EL CODIGO PARA QUE NO SE DETENGA EL PROCESO
-        
         ttk.Label(self.inner_frame, 
                 text="Monitoreo de Señales TCP/IP", 
                 font=("Segoe UI", 28, "bold"), 
@@ -103,10 +94,7 @@ class AppWindow(ttk.Window):
         #     GRÁFICA PRINCIPAL (SEÑAL SENOIDAL)       #
         # ============================================= #
         
-       
         self.fig, self.ax = plt.subplots()
-        
-        
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.inner_frame)
         self.canvas.get_tk_widget().pack(pady=10)
 
@@ -154,8 +142,6 @@ class AppWindow(ttk.Window):
         controles_frame.columnconfigure(9, weight=1)
         controles_frame.columnconfigure(10, weight=1)
         
-        
-        
         control_grafica = ttk.LabelFrame(self.inner_frame, text="Modificar Grafica", bootstyle= "primary", padding=15)
         control_grafica.pack(fill='x', pady=10)
         
@@ -163,11 +149,13 @@ class AppWindow(ttk.Window):
         control_grafica.grid_columnconfigure(4, weight=1)
         
         
+
+        
+        
         ttk.Button(control_grafica,
                    text="Modificar grafica",
                    bootstyle='danger outline',
                    command=self._ajustar_tamano_graficas).grid(row=0, column=1, padx=5, pady=5, sticky='ew', ipadx=20, ipady=10)
-        
         
         ttk.Label(control_grafica, text="Change Size", font=("Segoe UI", 12)).grid(row=0, column=3, sticky='e', padx=5)
         
@@ -175,9 +163,7 @@ class AppWindow(ttk.Window):
         self.tamano_graf.insert(0, self.segundos_ventana)
         self.tamano_graf.grid(row=0, column=4, sticky='ew', padx=5, ipadx=10, ipady=10)
         
-        
-
-            # Contenedor para las gráficas
+        # Contenedor para las gráficas
         grafica_frame = ttk.Labelframe(self.inner_frame, text="Visualización de Señales", bootstyle="danger", padding=20)
         grafica_frame.pack(fill='both', pady=10, expand=True)
 
@@ -190,10 +176,7 @@ class AppWindow(ttk.Window):
         graficas_row.columnconfigure(1, weight=1)
         graficas_row.rowconfigure(0, weight=1)
         
-         # Gráfica 1 (más pequeña, pero expandible)
-        
-
-                                
+        # Gráfica 1 (más pequeña, pero expandible)
         self.fig1, self.ax1 = plt.subplots(figsize=(5, 3))
         self.ax1.set_title("Señales RAM")   
         
@@ -201,13 +184,12 @@ class AppWindow(ttk.Window):
         self.canvas1.get_tk_widget().grid(row=0, column=0, padx=5, pady=5, sticky='nsew')
 
         # Gráfica 2 (también expandible)
-        
         self.fig2, self.ax2 = plt.subplots(figsize=(5, 3))
         self.ax2.set_title("Señales CPU")
         self.canvas2 = FigureCanvasTkAgg(self.fig2, master=graficas_row)
         self.canvas2.get_tk_widget().grid(row=0, column=1, padx=5, pady=5, sticky='nsew')
         
-          # Contenedor para las gráficas
+        # Contenedor para las gráficas
         descargar_frame = ttk.Labelframe(self.inner_frame, text="Descargar archivo CSV", bootstyle="primary", padding=20)
         descargar_frame.pack(fill='both', pady=10, expand=True)
 
@@ -242,10 +224,8 @@ class AppWindow(ttk.Window):
             messagebox.showerror("Advertencia", "El tamaño es muy grande y puede afectar el rendimiento")
             return
 
-     
         self.segundos_ventana = tamano_init
 
-       
         factor = 2
         ancho = max(4, tamano_init * factor)
         alto = 4
@@ -261,59 +241,57 @@ class AppWindow(ttk.Window):
 
         self.canvas.draw()
 
-    
     def descargar_csv(self):
         #messagebox.showinfo("Descargar CSV","Descargando archivo csv....")
 
-            if not self.historial_datos:
-                messagebox.showwarning("Advertencia", "No hay datos para descargar.")
-                return
-            
-            archivo = filedialog.asksaveasfilename(
-                defaultextension=".csv",
-                filetypes=[("CSV files", "*.csv")],
-                title="Guardar CSV"
-            )
-            
-            if not archivo:
-                return
-            
-            headers = ['#', 'Cantidad (paquetes)', 
-                'Tiempo (ms) REAL', 
-                'Hz Velocidad', 
-                'Diferencia segundos paquetes',
-                'cpu_percent','cpu_equipo_total','ram_percent','ram_total_equipo',
-                'vs_code_ram', 'cmd_exe_ram']
-            
-            
-            try:
-                with open(archivo, 'w', newline='', encoding='utf-8') as f:
-                    writer = csv.writer(f)
-                    writer.writerow(headers)
+        if not self.historial_datos:
+            messagebox.showwarning("Advertencia", "No hay datos para descargar.")
+            return
+        
+        archivo = filedialog.asksaveasfilename(
+            defaultextension=".csv",
+            filetypes=[("CSV files", "*.csv")],
+            title="Guardar CSV"
+        )
+        
+        if not archivo:
+            return
+        
+        headers = ['#', 'Cantidad (paquetes)', 
+            'Tiempo (ms) REAL', 
+            'Hz Velocidad', 
+            'Diferencia segundos paquetes',
+            'cpu_percent','cpu_equipo_total','ram_percent','ram_total_equipo',
+            'vs_code_ram', 'cmd_exe_ram']
+        
+        
+        try:
+            with open(archivo, 'w', newline='', encoding='utf-8') as f:
+                writer = csv.writer(f)
+                writer.writerow(headers)
 
-                    for idx, row in enumerate(self.historial_datos, 1):
-                        writer.writerow([
-                            idx,
-                            row["cantidad_paquetes"],
-                            row["tiempo_transcurrido"],
-                            row["hz"],
-                            row["ts"],
-                            row["cpu_process_percent"],
-                            row["cpu_equipo_total"],
-                            row["ram_process_mb"],
-                            row["ram_equipo_total"],
-                            row["vs_code_ram"],
-                            row["cmd_exe_ram"]
-                        ])
-                messagebox.showinfo("Éxito", "Archivo CSV exportado correctamente.")
-            except Exception as e:
-                messagebox.showerror("Error", f"No se pudo guardar el archivo CSV: {e}")
+                for idx, row in enumerate(self.historial_datos, 1):
+                    writer.writerow([
+                        idx,
+                        row["cantidad_paquetes"],
+                        row["tiempo_transcurrido"],
+                        row["hz"],
+                        row["ts"],
+                        row["cpu_process_percent"],
+                        row["cpu_equipo_total"],
+                        row["ram_process_mb"],
+                        row["ram_equipo_total"],
+                        row["vs_code_ram"],
+                        row["cmd_exe_ram"]
+                    ])
+            messagebox.showinfo("Éxito", "Archivo CSV exportado correctamente.")
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo guardar el archivo CSV: {e}")
 
     def start_client(self):
         #Aqui en esta funcion van a ingresar las variables de la amplitud y la frecuencia
         
         try:
-            
             # Aqui traemos la informacion de las entradas de amplitud y frecuencia strip() es para quitar los espacios en blanco
             # De al principio y al final de la cadena
             hz_input = self.entrada_hz.get().strip()
@@ -329,22 +307,20 @@ class AppWindow(ttk.Window):
             
             # Validamos que la frecuencia no este vacia
             if hz_input != "":
-                    new_hz = float(hz_input)
-                    if new_hz > 0:
-                        self.hz = new_hz
-                        
+                new_hz = float(hz_input)
+                if new_hz > 0:
+                    self.hz = new_hz
+                    
             if size_graph is None or not isinstance(size_graph, int) or size_graph <= 0:
                 messagebox.showerror("Error", "Por favor asigna un tamaño válido a la gráfica")
                 return
-
                             
-    
         except ValueError as e:
             messagebox.showerror("Error", f"Valor inválido: {e}")
             return
 
-        # Mira aqui validamos que exista un objet socket eso se valida en _iniciar_conexion()#
-        # Ah si asinga el socket a la variable tcp_socket no devuelve un True o False devulve un objeto socket
+        # Mira aqui validamos que exista un objeto socket eso se valida en _iniciar_conexion()
+        # Ah si asigna el socket a la variable tcp_socket no devuelve un True o False devuelve un objeto socket
         
         #Si no existe una object tcp_socket iniciamos la conexion
         if not self.tcp_socket:
@@ -352,9 +328,6 @@ class AppWindow(ttk.Window):
         else:
             #Si ya existe una conexion, simplemente enviamos los nuevos parametros
             self._enviar_parametros()
-            
-            
-            
 
     def _iniciar_conexion(self):
         """
@@ -371,7 +344,6 @@ class AppWindow(ttk.Window):
             
             #aqUI con el object socket nos conectamos al servidor
             self.tcp_socket.connect(("127.0.0.1", 8001))
-            
             
             # Envía parámetros iniciales
             self._enviar_parametros()
@@ -392,7 +364,6 @@ class AppWindow(ttk.Window):
                 self._actualizar_grafica()
                 self._actualizar_grafica_ram_cpu()
                 
-                
         except Exception as e:
             messagebox.showerror("Error", f"Fallo en conexión: {str(e)}")
 
@@ -400,10 +371,7 @@ class AppWindow(ttk.Window):
         """Envía los parámetros actuales al servidor en formato JSON"""
         if self.tcp_socket:
             try:
-                
                 # Armas un mensaje JSON con los parámetros actuales
-                # Los vamos a conertir A JSON
-                
                 msg = {
                     "amplitud": self.amplitud,
                     "hz": self.hz, 
@@ -411,12 +379,10 @@ class AppWindow(ttk.Window):
                 
                 # Como ya tenemos un objeto socket activo
                 # Y simplemente enviamos el mensaje JSON al servidor con la funcion sendall
-                
                 self.tcp_socket.sendall((json.dumps(msg) + '\n').encode('utf-8'))
                 
                 # .encode('utf-8') convierte el string a bytes + \n para los saltos de línea
                 
-            
             except Exception as e:
                 print(f"[ERROR] Envío de parámetros: {e}")
 
@@ -449,10 +415,8 @@ class AppWindow(ttk.Window):
                         self.x1_data.append(datos["x"])
                         self.y1_data.append(datos["ram_equipo_total"])
                         
-                        
                         self.x2_data.append(datos["x"])
                         self.y2_data.append(datos["cpu_equipo_total"])
-                        
                         
                         self.historial_datos.append(datos)
                         
@@ -469,7 +433,6 @@ class AppWindow(ttk.Window):
         2. Redibuja la gráfica sin reiniciarla
         3. Programa próxima actualización
         """
-        
         hz_input = self.entrada_hz.get().strip()
         if hz_input != "":
             hz = float(hz_input)
@@ -487,124 +450,112 @@ class AppWindow(ttk.Window):
         
         tamano_ventana = int(self.segundos_ventana * hz)
     
-        if tamano_ventana < 1:
-            tamano_ventana = 1
-            
-   
-            
-        # Obtiene copia segura de los datos
+        if tamano_ventana <= 0:
+            tamano_ventana = 30  # Por defecto 30 puntos si no está bien configurado
+        
         with self.data_lock:
-            x_data = self.x_data[-tamano_ventana:]
-            y_data = self.y_data[-tamano_ventana:]
+            # Cortar a los últimos N datos para la ventana actual
+            x = self.x_data[-tamano_ventana:]
+            y = self.y_data[-tamano_ventana:]
 
-            
-        # Actualización gráfica si hay nuevos datos
-        if x_data and y_data:
-            
-            
             self.ax.clear()
-            self.ax.plot(x_data, y_data, 'r-', label='Señal')
-            
-            self._ajustar_tamano_graficas()
-            
-            self.ax.set_title("Señal en Tiempo Real")
-            self.ax.set_xlabel("Tiempo (s)")
+            self.ax.plot(x, y, color="cyan", label="Señal Senoidal")
+            self.ax.set_title(f"Señal senoidal con amplitud {self.amplitud} y frecuencia {self.hz} Hz")
+            self.ax.set_xlabel("Tiempo (paquetes)")
             self.ax.set_ylabel("Amplitud")
-            
-            
-            self.ax.set_xlim(x_data[0], x_data[-1])  # Ajusta eje X al recorte
-            
-            #self.ax.legend() --> Esto es para quitar la leyenda de las grsfica senoidal
+            self.ax.grid(True, color="gray", linestyle="--", alpha=0.5)
+            #self.ax.legend()
+
             self.canvas.draw()
-  
-        # Programa próxima actualización (50ms)
-        
-        
-        self.after(ts, self._actualizar_grafica)
-        
-        
-        
+            
+            # Repetir cada 100 ms para actualización suave
+            self.after(100, self._actualizar_grafica)
+
     def _actualizar_grafica_ram_cpu(self):
         """
-        Actualización periódica de la gráfica de RAM:
-        1. Obtiene los últimos datos (con lock)
-        2. Redibuja la gráfica sin reiniciarla
-        3. Programa próxima actualización
+        Actualización periódica de gráficas RAM y CPU:
+        Similar a la principal, pero con dos gráficas independientes
         """
         if not self._refrescando:
             return
-            
-        # Obtiene copia segura de los datos
+        
+        hz_input = self.entrada_hz.get().strip()
+        if hz_input != "":
+            hz = float(hz_input)
+            if hz > 0:
+                self.hz = hz
+            else:
+                raise ValueError("Hz debe ser mayor que 0")
+        else:
+            hz = self.hz
+        
+        tamano_ventana = int(self.segundos_ventana * hz)
+        if tamano_ventana <= 0:
+            tamano_ventana = 30
+        
         with self.data_lock:
-            x1_data = self.x1_data[-self.max_datos:]
-            y1_data = self.y1_data[-self.max_datos:]
-            x2_data = self.x2_data[-self.max_datos:]
-            y2_data = self.y2_data[-self.max_datos:]
+            x1 = self.x1_data[-tamano_ventana:]
+            y1 = self.y1_data[-tamano_ventana:]
             
-            
-        # Actualización gráfica si hay nuevos datos
-        if x1_data and y1_data:
+            x2 = self.x2_data[-tamano_ventana:]
+            y2 = self.y2_data[-tamano_ventana:]
+        
             self.ax1.clear()
-            self.ax1.plot(x1_data, y1_data, 'b-', label='RAM')
+            self.ax1.plot(x1, y1, 'b-', label='RAM')
             self.ax1.set_title("Uso de RAM en Tiempo Real")
             self.ax1.set_xlabel("Tiempo (s)")
             self.ax1.set_ylabel("Uso RAM (MB)")
             #self.ax1.legend()
-            self.canvas1.draw()
             
-        if x2_data and y2_data:
             self.ax2.clear()
-            self.ax2.plot(x2_data, y2_data, 'g-', label='CPU')
+            self.ax2.plot(x2, y2, 'g-', label='CPU')
             self.ax2.set_title("Uso de CPU en Tiempo Real")
             self.ax2.set_xlabel("Tiempo (s)")
             self.ax2.set_ylabel("Uso CPU (%)")
             #self.ax2.legend()
-            self.canvas2.draw()    
-  
-        # Programa próxima actualización (50ms)
-        self.after(5000, self._actualizar_grafica_ram_cpu)    
+
+            self.canvas1.draw()
+            self.canvas2.draw()
+
+        self.after(5000, self._actualizar_grafica_ram_cpu)
 
     def stop_monitor(self):
         """
-        Detiene limpiamente el monitoreo:
-        1. Detiene hilo de recepción
-        2. Cierra socket
-        3. Detiene actualización gráfica
+        Detiene la recepción de datos y cierra la conexión TCP.
+        Resetea variables y buffers.
         """
-        
-        if not self.recibiendo_datos:
-            messagebox.showinfo("Información", "No hay monitoreo activo.")
-            return 
-        
-        self.x_data, self.y_data = [], []
-        
-        self.x1_data, self.y1_data = [], []
-        self.x2_data, self.y2_data = [], []
-        
-        self.ax1.clear()
-        
-        self.ax2.clear()
-         
-        # Limpia los buffers de datos
-
-        
-        self._refrescando = False
-        self.recibiendo_datos = False
-        
         if self.tcp_socket:
             try:
-                # Envía comando de parada
-                self.tcp_socket.sendall(json.dumps({"stop": True}).encode('utf-8'))
+                self.recibiendo_datos = False
+                self._refrescando = False
+                
+                # Cierra el socket TCP
+                self.tcp_socket.shutdown(socket.SHUT_RDWR)
                 self.tcp_socket.close()
-            except Exception as e:
-                print(f"[WARN] Error al cerrar conexión: {e}")
-            finally:
                 self.tcp_socket = None
+                
+                # Limpia datos y buffers
+                with self.data_lock:
+                    self.x_data.clear()
+                    self.y_data.clear()
+                    self.x1_data.clear()
+                    self.y1_data.clear()
+                    self.x2_data.clear()
+                    self.y2_data.clear()
+                    self.historial_datos.clear()
+                
+                # Limpia gráficas
+                self.ax.clear()
+                self.canvas.draw()
+                self.ax1.clear()
+                self.canvas1.draw()
+                self.ax2.clear()
+                self.canvas2.draw()
+                
+                messagebox.showinfo("Información", "Monitoreo detenido correctamente.")
+            except Exception as e:
+                messagebox.showerror("Error", f"No se pudo detener el monitoreo: {e}")
 
-    def run(self):
-        """Inicia el bucle principal de la aplicación"""
-        self.mainloop()
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     app = AppWindow()
-    app.run()
+    app.mainloop()
