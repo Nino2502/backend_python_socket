@@ -508,11 +508,7 @@ class AppWindow(ttk.Window):
         Actualización periódica de gráficas RAM y CPU:
         Similar a la principal, pero con dos gráficas independientes
         """
-        
-        
-        print(f"Soy los nucleos logicos {self.nucleos_logicos}")
-        
-        print(f"Soy los nuevos nucleos fisicos {self.nucleos_fisicos}")
+
         if not self._refrescando:
             return
         
