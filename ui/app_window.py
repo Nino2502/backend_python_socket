@@ -59,6 +59,7 @@ class AppWindow(ttk.Window):
         self.tcp_socket = None          # Socket TCP
         self.recibiendo_datos = False   # Flag para hilo de recepción
         self._refrescando = False       # Flag para actualización gráfica
+       
 
         # Configuración de interfaz gráfica
         self._setup_ui()
@@ -99,6 +100,8 @@ class AppWindow(ttk.Window):
         # ============================================= #
         
         self.fig, self.ax = plt.subplots()
+        self.linea_senal, = self.ax.plot([], [], color="cyan", label="Señal Senoidal")
+
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.inner_frame)
         self.canvas.get_tk_widget().pack(pady=10)
 
@@ -464,11 +467,17 @@ class AppWindow(ttk.Window):
         
         with self.data_lock:
             # Cortar a los últimos N datos para la ventana actual
-            x = self.x_data[-tamano_ventana:]
+            
             y = self.y_data[-tamano_ventana:]
+            
+            x = [i / hz for i in range(len(y))]
+            #La parte de mi codigo len(y) es decir la cantidad de muestras recientes para graficar.
+            # With the range genera una secuencia
+            #1/hz tiempo de diferencia de paquetes que hay
 
-            self.ax.clear()
-            self.ax.plot(x, y, color="cyan", label="Señal Senoidal")
+            self.linea_senal.set_data(x, y)
+            self.ax.set_xlim(0, self.segundos_ventana)
+            self.ax.set_ylim(-self.amplitud * 1.2, self.amplitud * 1.2)
             self.ax.set_title(f"Señal senoidal con amplitud {self.amplitud} y frecuencia {self.hz} Hz")
             self.ax.set_xlabel("Tiempo (paquetes)")
             self.ax.set_ylabel("Amplitud")
@@ -587,12 +596,12 @@ class AppWindow(ttk.Window):
                     #self.historial_datos.clear()
                 
                 # Limpia gráficas
-                self.ax.clear()
-                self.canvas.draw()
-                self.ax1.clear()
-                self.canvas1.draw()
-                self.ax2.clear()
-                self.canvas2.draw()
+                #self.ax.clear()
+                #self.canvas.draw()
+                #self.ax1.clear()
+                #self.canvas1.draw()
+                #self.ax2.clear()
+                #self.canvas2.draw()
                 
                 messagebox.showinfo("Información", "Monitoreo detenido correctamente.")
             except Exception as e:

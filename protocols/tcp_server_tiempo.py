@@ -1,16 +1,18 @@
 import socket
 #sOCKET ES PARA crear y manejasr conexiones TCP
 import json
+
 import time
+
 import math
+
 import psutil
+
 import threading
 
 import signal
 
 #threading ES PARA manejar múltiples conexiones simultáneas basicamentes HILOS YA SEA PARA ENVIAR O EDITAR TRAMAS DE INFORMACIÓN
-
-
 # ================================ #
 # Autor: Jesus Gonzalez Leal (Nino :3)
 # Fecha: 24 de junio del 2025      #
@@ -24,8 +26,6 @@ TCP_PORT = 8001
 #Y ademas donde se mandar y se recibirá la información
 BUFFER_SIZE = 1024
 #BUFFER_SIZE ES EL TAMAÑO QUE SE PODRA ENVIAR Y RECIBIR EN CADA PETICIÓN LA INFORMACION
-
-
 # ========================== #
 
 def get_resource_usage():
@@ -58,7 +58,6 @@ def get_resource_usage():
 
     #Y despues basicamente lo retorno con un array lleno de objectos con los datos de uso de recursos
     #Psra acceder a los datos con la funcion de mandar datos por socket
-    
     
 """"
 def get_ram_usage_by_name(target_name: str):
@@ -104,7 +103,6 @@ class TCPHandler:
                 #Aqui todos los datos que se reciban del cliente se van a guardar en el buffer
                 #Y los separamos por un salto de línea
             config = json.loads(buffer.strip())
-
             #En config todos los datos que se recibieron del cliente se van a guardar en un objeto JSON
 
             with self.lock:
@@ -254,8 +252,6 @@ class TCPServer:
                     continue
                 except Exception as e:
                     print(f"[SERVER] Error al aceptar conexión: {e}")
-                        
-    
 
 # =========================== #
 #       MAIN: Run server      #
