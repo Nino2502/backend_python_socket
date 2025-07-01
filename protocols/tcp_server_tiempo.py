@@ -58,7 +58,9 @@ def get_resource_usage():
 
     #Y despues basicamente lo retorno con un array lleno de objectos con los datos de uso de recursos
     #Psra acceder a los datos con la funcion de mandar datos por socket
-
+    
+    
+""""
 def get_ram_usage_by_name(target_name: str):
     #Esta funcion busca procesos que se estan cargando en segundos planos que contanga
     #tzarget_name en su nombre y retorna el uso de RAM en MB
@@ -71,6 +73,8 @@ def get_ram_usage_by_name(target_name: str):
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             continue
     return round(total_ram, 2) if total_ram > 0 else None
+
+"""
 
 # ========================== #
 #     CLASE: TCPHandler      #
@@ -143,8 +147,12 @@ class TCPHandler:
         count_ts = 0
         start_time = time.time()
         prev_timestamp = None
+        
+        """"
         vscode_ram = get_ram_usage_by_name("Code.exe")
         cmd_ram = get_ram_usage_by_name("cmd.exe")
+        
+        """
 
         try:
             while not self.params["stop"]:
@@ -175,9 +183,7 @@ class TCPHandler:
                     "y": round(y, 4),
                     "ts_server": timestamp_now,
                     "delta_t": round(delta_t, 6) if delta_t else None,
-                    **recursos,
-                    "vs_code_ram": vscode_ram,
-                    "cmd_ram": cmd_ram,
+                    **recursos
                 }
 
                 mensaje = json.dumps(data) + "\n"
