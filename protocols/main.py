@@ -17,6 +17,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+#====================================#
+#   ESTE ES DEL PROTOCOLO DE HTTP    #
+#====================================#
+
 
 def get_ram_usage_by_name(target_name: str):
     total_ram = 0.0

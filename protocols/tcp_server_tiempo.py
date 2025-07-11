@@ -86,7 +86,7 @@ class TCPHandler:
         self.conn = conn
         self.addr = addr
         #Guardamos la conexion TCP y la dirección del cliente
-        self.params = {"amplitud": 30.0, "hz": 100.0, "stop": False}
+        self.params = {"amplitud": 30.0, "hz": 100.0, "stop": False, "segundos": 10.0}
 
         #Definimos los parámetros iniciales que se pueden modificar
 
@@ -100,6 +100,8 @@ class TCPHandler:
         try:
             while not buffer.endswith("\n"):
                 buffer += self.conn.recv(BUFFER_SIZE).decode("utf-8")
+                
+                print(f"[SERVER] Recibiendo configuración inicial: {buffer}")
                 #Aqui todos los datos que se reciban del cliente se van a guardar en el buffer
                 #Y los separamos por un salto de línea
             config = json.loads(buffer.strip())
@@ -108,6 +110,7 @@ class TCPHandler:
             with self.lock:
                 self.params["amplitud"] = float(config.get("amplitud", self.params["amplitud"]))
                 self.params["hz"] = float(config.get("hz", self.params["hz"]))
+                self.params["segundos"] = float(config.get("segundos", self.params["segundos"]))
 
         except Exception as e:
             print(f"[SERVER] Error leyendo configuración inicial: {e}")
@@ -134,6 +137,7 @@ class TCPHandler:
                         #Aqui se bloquea el acceso a los parámetros para evitar condiciones de carrera (osea de modulo que se edite al mismo tiempo)
                         self.params["amplitud"] = float(msg.get("amplitud", self.params["amplitud"]))
                         self.params["hz"] = float(msg.get("hz", self.params["hz"]))
+                        self.params["segundos"] = float(msg.get("segundos", self.params["segundos"]))
                         if msg.get("stop"):
                             self.params["stop"] = True
             except Exception as e:
@@ -155,13 +159,25 @@ class TCPHandler:
         try:
             while not self.params["stop"]:
                 with self.lock:
+                    
                     ts = 1 / self.params["hz"]
+                    
                     amplitud = self.params["amplitud"]
+                    
                     hz = self.params["hz"]
+                    
+                    segundos =  self.params["segundos"]
+
+                
+                print(f"Soy datos de parametros {segundos} <<-- Segundos --> ts :  {ts} {amplitud} {hz}")
+                
+           
 
                 current_time = time.time() - start_time
                 count_ts = round(count_ts + ts, 4)  # mejor precisión para tiempo
 
+                
+                #y = amplitud * math.sin(2 * math.pi * self.params["hz"] * count_ts + 4)
                 
                 y = amplitud * math.sin(2 * math.pi * count_ts + 4)
 
@@ -177,6 +193,7 @@ class TCPHandler:
                     "tiempo_transcurrido": round(current_time, 4),
                     "hz": hz,
                     "ts": ts,
+                    "segundos": segundos,
                     "x": round(current_time, 4),
                     "y": round(y, 4),
                     "ts_server": timestamp_now,
