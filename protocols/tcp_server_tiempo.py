@@ -86,7 +86,7 @@ class TCPHandler:
         self.conn = conn
         self.addr = addr
         #Guardamos la conexion TCP y la dirección del cliente
-        self.params = {"amplitud": 30.0, "hz": 100.0, "stop": False, "segundos": 10.0}
+        self.params = {"amplitud": 30.0, "hz": 100.0, "stop": False, "segundos": 10.0, "hz_m" : 10.0}
 
         #Definimos los parámetros iniciales que se pueden modificar
 
@@ -111,6 +111,9 @@ class TCPHandler:
                 self.params["amplitud"] = float(config.get("amplitud", self.params["amplitud"]))
                 self.params["hz"] = float(config.get("hz", self.params["hz"]))
                 self.params["segundos"] = float(config.get("segundos", self.params["segundos"]))
+                self.params["hz_m"] = float(config.get("hz_m", self.params["hz_m"]))
+                
+                
 
         except Exception as e:
             print(f"[SERVER] Error leyendo configuración inicial: {e}")
@@ -120,7 +123,7 @@ class TCPHandler:
 
     def listen_for_updates(self):
         buffer = ""
-        while not self.params["stop"]:
+        while not self.params["stop"]:  
             #Aqui validamos que no se mande el parametro ["stop"] Y para que no se detenga
             try:
                 data = self.conn.recv(BUFFER_SIZE)
@@ -128,16 +131,26 @@ class TCPHandler:
                 if not data:
                     break
                 buffer += data.decode("utf-8")
+                print(f"<<Soy BUFFER>>", buffer)
+                
                 #Aqui todos los datos los ponemos en formato UTF-8
                 while "\n" in buffer:
                     #Aqui creamos un bucle que la variable buffer contenga saltos de línea
                     linea, buffer = buffer.split("\n", 1)
                     msg = json.loads(linea.strip())
+                    print(f"<<Soy MSG >>>{msg}")
+                    
+                    
+                 
+                
                     with self.lock:
                         #Aqui se bloquea el acceso a los parámetros para evitar condiciones de carrera (osea de modulo que se edite al mismo tiempo)
                         self.params["amplitud"] = float(msg.get("amplitud", self.params["amplitud"]))
                         self.params["hz"] = float(msg.get("hz", self.params["hz"]))
                         self.params["segundos"] = float(msg.get("segundos", self.params["segundos"]))
+                        self.params["hz_m"] = float(msg.get("hz_m", self.params["hz_m"]))
+                        
+                        
                         if msg.get("stop"):
                             self.params["stop"] = True
             except Exception as e:
@@ -160,26 +173,25 @@ class TCPHandler:
             while not self.params["stop"]:
                 with self.lock:
                     
-                    ts = 1 / self.params["hz"]
+                    ts = 1 / self.params["hz_m"]
                     
                     amplitud = self.params["amplitud"]
                     
                     hz = self.params["hz"]
                     
                     segundos =  self.params["segundos"]
-
-                
-                print(f"Soy datos de parametros {segundos} <<-- Segundos --> ts :  {ts} {amplitud} {hz}")
-                
-           
+                    
+                    hz_m = self.params["hz_m"]
+                    
+                    
 
                 current_time = time.time() - start_time
                 count_ts = round(count_ts + ts, 4)  # mejor precisión para tiempo
 
                 
-                #y = amplitud * math.sin(2 * math.pi * self.params["hz"] * count_ts + 4)
+                y = amplitud * math.sin(2 * math.pi * self.params["hz"] * count_ts + 4)
                 
-                y = amplitud * math.sin(2 * math.pi * count_ts + 4)
+                #y = amplitud * math.sin(2 * math.pi * count_ts + 4)
 
                 recursos = get_resource_usage()
                 cantidad_paquetes += 1
@@ -193,6 +205,7 @@ class TCPHandler:
                     "tiempo_transcurrido": round(current_time, 4),
                     "hz": hz,
                     "ts": ts,
+                    "hz_m" : hz_m,
                     "segundos": segundos,
                     "x": round(current_time, 4),
                     "y": round(y, 4),

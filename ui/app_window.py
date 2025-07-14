@@ -42,6 +42,12 @@ class AppWindow(ttk.Window):
         self.historial_datos = []  # Almacena todos los datos recibidos
         self.segundos_ventana = 0 # Ventana de tiempo para visualizar la grafica
         
+        self.hz_muestreo = 0 #Frecuencia de muestreo
+        
+        self.intervalo_muestreo = 0 # 1 / hz_muestreo
+        
+        self.tamano_grafico = 0
+        
         self.nucleos_fisicos = []
         
         self.nucleos_logicos = []
@@ -99,9 +105,22 @@ class AppWindow(ttk.Window):
         #     GRÁFICA PRINCIPAL (SEÑAL SENOIDAL)       #
         # ============================================= #
         
+        
+        # En tu método _actualizar_grafica:
         self.fig, self.ax = plt.subplots()
-        self.linea_senal, = self.ax.plot([], [], color="cyan", label="Señal Senoidal")
-
+        self.linea_senal, = self.ax.plot(
+            [], [], 
+            color="cyan", 
+            marker='o',               # Añade marcadores
+            markersize=4,             # Tamaño de los puntos
+            markerfacecolor='red',    # Color interno
+            markeredgecolor='black',  # Borde de los puntos
+            linestyle='-',            # Línea continua
+            linewidth=1,              # Grosor de línea
+            alpha=0.7                 # Ligera transparencia
+        )
+        
+        
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.inner_frame)
         self.canvas.get_tk_widget().pack(pady=10)
 
@@ -114,62 +133,67 @@ class AppWindow(ttk.Window):
                                        padding=15)
         controles_frame.pack(fill='x', pady=10)
         
+            # Configuración de columnas responsive
+        for i in range(12):  # Creamos 12 columnas flexibles
+            controles_frame.columnconfigure(i, weight=1, uniform="group1")
 
+        
+
+
+        # Fila 0 - Controles principales
         # Entrada para amplitud
-        # Caja de entra de amplitud
         ttk.Label(controles_frame, text="Amplitud:", font=("Segoe UI", 12)).grid(row=0, column=0, sticky='e', padx=5, pady=5)
         self.entrada_amplitud = ttk.Entry(controles_frame, width=10, font=("Segoe UI", 10))
         self.entrada_amplitud.insert(0, "10")
-        self.entrada_amplitud.grid(row=0, column=1, sticky='ew', padx=5)
+        self.entrada_amplitud.grid(row=0, column=1, sticky='ew', padx=5, ipady=8)
 
         # Entrada para frecuencia (Hz)
         # Caja de entra de frecuencia
-        ttk.Label(controles_frame, text="Hz:", font=("Segoe UI", 12)).grid(row=0, column=3, sticky='e', padx=5)
+        ttk.Label(controles_frame, text="Hz Señal:", font=("Segoe UI", 12)).grid(row=0, column=2, sticky='e', padx=5)
         self.entrada_hz = ttk.Entry(controles_frame, width=10, font=("Segoe UI", 10))
         self.entrada_hz.insert(0, "10") 
-        self.entrada_hz.grid(row=0, column=4, sticky='ew', padx=5)
-
-        # Botón para iniciar/actualizar monitoreo
+        self.entrada_hz.grid(row=0, column=3, sticky='ew', padx=5, ipady=8)
+        
+        # Entrada para Hz de muestreo
+        ttk.Label(controles_frame, text="Hz Muestreo:", font=("Segoe UI", 12)).grid(row=0, column=4, sticky='e', padx=5)
+        self.entrada_hz_muestreo = ttk.Entry(controles_frame, width=10, font=("Segoe UI", 10))
+        self.entrada_hz_muestreo.insert(0, "30")  # Valor por defecto
+        self.entrada_hz_muestreo.grid(row=0, column=5, sticky='ew', padx=5, pady=8)
+        
+        # Entrada para segundos de ventana
+        ttk.Label(controles_frame, text="Seg. Ventana:", font=("Segoe UI", 12)).grid(row=0, column=6, sticky='e', padx=5)
+        self.tamano_graf = ttk.Entry(controles_frame, width=10, font=("Segoe UI", 10))
+        self.tamano_graf.insert(0, "5")  # Valor por defecto
+        self.tamano_graf.grid(row=0, column=7, sticky='ew', padx=5, pady=8)
+        
+            # Espaciador flexible
+        ttk.Frame(controles_frame).grid(row=0, column=8, sticky='ew')
+                
+        
+                
+        # Botones de acción
         ttk.Button(controles_frame, 
-                 text="Iniciar/Actualizar Monitoreo", 
-                 bootstyle='success outline', 
-                 command=self.start_client).grid(row=0, column=9, padx=5, pady=5, sticky='ew', ipadx=20, ipady=10)
+                text="Iniciar/Actualizar", 
+                bootstyle='success outline', 
+                command=self.start_client).grid(row=0, column=9, padx=5, pady=5, sticky='ew', ipadx=10, ipady=10)
 
-        # Botón para detener monitoreo
         ttk.Button(controles_frame, 
-                 text="Detener Monitoreo", 
-                 bootstyle='danger outline', 
-                 command=self.stop_monitor).grid(row=0, column=10, padx=5, pady=5, sticky='ew', ipadx=20, ipady=10)
-        
-        control_grafica = ttk.Labelframe(self)
-        
-        # Responsive columns
-        controles_frame.columnconfigure(1, weight=1)
-        controles_frame.columnconfigure(4, weight=1)
-        controles_frame.columnconfigure(9, weight=1)
-        controles_frame.columnconfigure(10, weight=1)
-        
-        control_grafica = ttk.LabelFrame(self.inner_frame, text="Modificar Grafica", bootstyle= "primary", padding=15)
-        control_grafica.pack(fill='x', pady=10)
-        
-        control_grafica.grid_columnconfigure(1, weight=1)
-        control_grafica.grid_columnconfigure(4, weight=1)
+                text="Detener", 
+                bootstyle='danger outline', 
+                command=self.stop_monitor).grid(row=0, column=10, padx=5, pady=5, sticky='ew', ipadx=10, ipady=10)
         
         
-
-        
-        
+            # Espaciador final
+        ttk.Frame(controles_frame).grid(row=0, column=11, sticky='ew')
+   
+        """"
         ttk.Button(control_grafica,
                    text="Modificar grafica",
                    bootstyle='danger outline',
                    command=self._ajustar_tamano_graficas).grid(row=0, column=1, padx=5, pady=5, sticky='ew', ipadx=20, ipady=10)
+        """           
         
-        ttk.Label(control_grafica, text="Change Size", font=("Segoe UI", 12)).grid(row=0, column=3, sticky='e', padx=5)
-        
-        self.tamano_graf = ttk.Entry(control_grafica, width=10, font=("Segoe UI", 10))
-        self.tamano_graf.insert(0, self.segundos_ventana)
-        self.tamano_graf.grid(row=0, column=4, sticky='ew', padx=5, ipadx=10, ipady=10)
-        
+       
         # Contenedor para las gráficas
         grafica_frame = ttk.Labelframe(self.inner_frame, text="Visualización de Señales", bootstyle="danger", padding=20)
         grafica_frame.pack(fill='both', pady=10, expand=True)
@@ -209,7 +233,7 @@ class AppWindow(ttk.Window):
         ).pack(fill='x', expand=True, pady=10)
         
     def _ajustar_tamano_graficas(self):
-        tamano = self.tamano_graf.get().strip()
+        tamano = int(self.tamano_graf.get().strip())
 
         # Validar si se ingresó algo
         if not tamano:
@@ -295,7 +319,8 @@ class AppWindow(ttk.Window):
             messagebox.showinfo("Éxito", "Archivo CSV exportado correctamente.")
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo guardar el archivo CSV: {e}")
-
+            
+            
     def start_client(self):
         #Aqui en esta funcion van a ingresar las variables de la amplitud y la frecuencia
         
@@ -304,8 +329,10 @@ class AppWindow(ttk.Window):
             # De al principio y al final de la cadena
             hz_input = self.entrada_hz.get().strip()
             amplitud_input = self.entrada_amplitud.get().strip()
+            hz_m_input = self.entrada_hz_muestreo.get().strip()
             
-            size_graph = self.segundos_ventana
+            # Obtener el tamaño de la gráfica del input
+            tamano_input = self.tamano_graf.get().strip()
 
             # Validamos que las entradas no esten vacias
             if amplitud_input != "":
@@ -319,23 +346,69 @@ class AppWindow(ttk.Window):
                 if new_hz > 0:
                     self.hz = new_hz
                     
-            if size_graph is None or not isinstance(size_graph, int) or size_graph <= 0:
-                messagebox.showerror("Error", "Por favor asigna un tamaño válido a la gráfica")
+            if hz_m_input != "":
+                new_hz_m = float(hz_m_input)
+                if new_hz_m > 0:
+                    self.hz_muestreo = new_hz_m
+                    
+            # Validar y actualizar tamaño de gráfica
+            if tamano_input != "":
+                try:
+                    tamano_init = int(tamano_input)
+                    if tamano_init <= 0:
+                        messagebox.showerror("Error", "El tamaño debe ser mayor a 0")
+                        return
+                    if tamano_init > 60:
+                        messagebox.showerror("Advertencia", "El tamaño es muy grande y puede afectar el rendimiento")
+                        return
+                    
+                    self.segundos_ventana = tamano_init
+                    
+                    # Aplicar cambios al tamaño de la gráfica
+                    factor = 2
+                    ancho = max(4, tamano_init * factor)
+                    alto = 4
+
+                    self.fig.set_size_inches(ancho, alto, forward=True)
+
+                    dpi = self.fig.get_dpi()
+                    ancho_px = int(ancho * dpi)
+                    alto_px = int(alto * dpi)
+
+                    widget = self.canvas.get_tk_widget()
+                    widget.config(width=ancho_px, height=alto_px)
+
+                    self.canvas.draw()
+                    
+                except ValueError:
+                    messagebox.showerror("Error", "El tamaño debe ser un número entero válido")
+                    return
+                    
+            numero_mayor = 2 * self.hz + 1
+            
+            if self.hz_muestreo < numero_mayor:
+                messagebox.showerror("Error",f"El Hz de muestreo debe ser mayor que {numero_mayor}")
                 return
-                            
+            
+            self.intervalo_muestreo = 1 / self.hz_muestreo #Esto es para calcular la distancia entre cada punto en la grafica
+            
+            self.tamano_grafico = int(self.hz_muestreo * self.segundos_ventana) #Esto es solo para que se ajuste la grafica a los segundos
+            
+            # Mira aqui validamos que exista un objeto socket eso se valida en _iniciar_conexion()
+            # Ah si asigna el socket a la variable tcp_socket no devuelve un True o False devuelve un objeto socket
+            
+            #Si no existe una object tcp_socket iniciamos la conexion
+            if not self.tcp_socket:
+                self._iniciar_conexion()
+            else:
+                #Si ya existe una conexion, simplemente enviamos los nuevos parametros
+                self._enviar_parametros()
+                
         except ValueError as e:
             messagebox.showerror("Error", f"Valor inválido: {e}")
-            return
+            return        
 
-        # Mira aqui validamos que exista un objeto socket eso se valida en _iniciar_conexion()
-        # Ah si asigna el socket a la variable tcp_socket no devuelve un True o False devuelve un objeto socket
-        
-        #Si no existe una object tcp_socket iniciamos la conexion
-        if not self.tcp_socket:
-            self._iniciar_conexion()
-        else:
-            #Si ya existe una conexion, simplemente enviamos los nuevos parametros
-            self._enviar_parametros()
+   
 
     def _iniciar_conexion(self):
         """
@@ -382,7 +455,9 @@ class AppWindow(ttk.Window):
                 # Armas un mensaje JSON con los parámetros actuales
                 msg = {
                     "amplitud": self.amplitud,
-                    "hz": self.hz, 
+                    "hz": self.hz,
+                    "segundos" : self.segundos_ventana,
+                    "hz_m" : self.hz_muestreo
                 }
                 
                 # Como ya tenemos un objeto socket activo
@@ -468,9 +543,10 @@ class AppWindow(ttk.Window):
         with self.data_lock:
             # Cortar a los últimos N datos para la ventana actual
             
-            y = self.y_data[-tamano_ventana:]
+            y = self.y_data[-self.tamano_grafico:]
             
-            x = [i / hz for i in range(len(y))]
+            x = [ i * self.intervalo_muestreo for i in range(len(y))]
+
             #La parte de mi codigo len(y) es decir la cantidad de muestras recientes para graficar.
             # With the range genera una secuencia
             #1/hz tiempo de diferencia de paquetes que hay
@@ -500,7 +576,7 @@ class AppWindow(ttk.Window):
             self.canvas.draw()
             
             #Con el ts va a describir el tiempo que hay entre cada paquete::
-            self.after(ts, self._actualizar_grafica)
+            self.after(int(self.intervalo_muestreo * 1000), self._actualizar_grafica)
             #WARNING is the code , because : Puede ocasionar cuello de botella
 
     def _actualizar_grafica_ram_cpu(self):
