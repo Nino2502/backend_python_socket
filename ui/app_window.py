@@ -111,7 +111,6 @@ class AppWindow(ttk.Window):
         self.linea_senal, = self.ax.plot(
             [], [], 
             color="cyan", 
-            marker='o',               # Añade marcadores
             markersize=4,             # Tamaño de los puntos
             markerfacecolor='red',    # Color interno
             markeredgecolor='black',  # Borde de los puntos

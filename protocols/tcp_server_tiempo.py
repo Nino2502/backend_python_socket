@@ -31,7 +31,7 @@ BUFFER_SIZE = 1024
 def get_resource_usage():
     process = psutil.Process()
     process.cpu_percent(interval=None)
-    time.sleep(0.1)
+    
     cpu_percent = process.cpu_percent(interval=None)
     cpu_percent_total = psutil.cpu_percent(interval=None)
     mem_info = process.memory_info()
@@ -193,7 +193,21 @@ class TCPHandler:
                 
                 #y = amplitud * math.sin(2 * math.pi * count_ts + 4)
 
-                recursos = get_resource_usage()
+                #recursos = get_resource_usage()
+                recursos = {
+                        "cpu_process_percent":5 ,
+                        "cpu_equipo_total": 2,
+                        "ram_process_mb": 4,
+                        "ram_equipo_total": 2,
+                        "nucleos_logicos" : 2,
+                        "nucleos_fisicos" : 3
+                    }
+                
+                
+                #Contandor y variables 
+                
+                
+                
                 cantidad_paquetes += 1
 
                 timestamp_now = time.time()
