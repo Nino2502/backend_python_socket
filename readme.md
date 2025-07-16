@@ -18,7 +18,7 @@
 2. **Instalar depencias**:
 
     pip install -r requirements.txt
-
+ 
 
 # Codigo para ejecutar el programa
 
@@ -98,8 +98,6 @@
     Package Manager: npm 10.8.2
     OS: win32 x64
     Angular: 19.2.10
-
-
 
 # Datos Especificos Computadora
     Laptop Lenovo Ideapad 3

@@ -182,6 +182,13 @@ class AppWindow(ttk.Window):
                 command=self.stop_monitor).grid(row=0, column=10, padx=5, pady=5, sticky='ew', ipadx=10, ipady=10)
         
         
+        ttk.Button(controles_frame, 
+                text="Probar sleep()", 
+                bootstyle='warning outline', 
+                command=self.probar_precision_sleep).grid(row=0, column=11, padx=5, pady=5, sticky='ew', ipadx=10, ipady=10)
+
+        
+        
             # Espaciador final
         ttk.Frame(controles_frame).grid(row=0, column=11, sticky='ew')
    
@@ -270,6 +277,73 @@ class AppWindow(ttk.Window):
         widget.config(width=ancho_px, height=alto_px)
 
         self.canvas.draw()
+
+    
+    def probar_precision_sleep(self):
+        """
+        Muestra una gráfica comparando el tiempo ideal vs. real de time.sleep(0.001)
+        y muestra un mensaje indicando si el hz_muestreo ingresado es válido en Windows.
+        """
+        import matplotlib.pyplot as plt
+
+        try:
+            # Obtener el valor de Hz de muestreo desde la entrada
+            hz_m = float(self.entrada_hz_muestreo.get())
+            ts = 1 / hz_m  # Intervalo teórico en segundos
+            limite_windows = 0.015625  # Límite real mínimo de sleep en Windows (~15.625 ms)
+
+            estado = "✅ PERMITIDO por Windows" if ts >= limite_windows else "❌ NO PERMITIDO (demasiado rápido)"
+            ts_ms = ts * 1000  # Convertir a milisegundos
+            
+            """"
+            Windows tiene un tick mínimo de reloj de ~15.625 ms, así que aunque tú quieras hacer sleep(0.009) (9 ms), 
+            en realidad Windows hará sleep(15.6 ms) o más, lo cual:
+            
+            En vez de 5 segundos, se tardan cerca de:
+            15.625 ms × 555 = ~8.67 segundos, que coincide con lo que observas (5 esperados, 9 reales).
+            
+            
+            """
+
+            # Mostrar mensaje con diagnóstico
+            mensaje = (
+                f"Frecuencia de muestreo: {hz_m} Hz\n"
+                f"Intervalo entre paquetes (ts): {ts_ms:.4f} ms\n"
+                f"Límite mínimo permitido por Windows: 15.625 ms\n\n"
+                f"Resultado: {estado}"
+            )
+            messagebox.showinfo("Verificación de Limitación Windows", mensaje)
+
+            # ============================ #
+            #     Crear gráfica visual     #
+            # ============================ #
+            ideal_ts = 0.001     # 1 ms ideal (si Windows lo permitiera)
+            real_ts = 0.015625   # Tiempo real mínimo en Windows (~15.625 ms)
+            tiempo_total = 1     # 1 segundo de simulación
+
+            # Generar marcas de tiempo para ambos casos
+            ideal_pulsos = [i * ideal_ts for i in range(int(tiempo_total / ideal_ts))]
+            real_pulsos = [i * real_ts for i in range(int(tiempo_total / real_ts))]
+
+            fig, ax = plt.subplots(figsize=(10, 4))
+            ax.eventplot(ideal_pulsos, lineoffsets=1, colors='blue', label='Ideal: sleep(1 ms)')
+            ax.eventplot(real_pulsos, lineoffsets=0.5, colors='red', label='Windows: sleep(15.6 ms)')
+
+            # Configuración visual
+            ax.set_title("Comparación: sleep(1 ms) Ideal vs. Real en Windows", fontsize=14)
+            ax.set_xlabel("Tiempo (segundos)")
+            ax.set_yticks([0.5, 1])
+            ax.set_yticklabels(["Real (~15.6 ms)", "Ideal (1 ms)"])
+            ax.set_xlim(0, 1)
+            ax.legend()
+            ax.grid(True, linestyle='--', alpha=0.5)
+
+            plt.tight_layout()
+            plt.show()
+
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo calcular el ts: {e}")
+
 
     def descargar_csv(self):
         #messagebox.showinfo("Descargar CSV","Descargando archivo csv....")
@@ -519,6 +593,10 @@ class AppWindow(ttk.Window):
         2. Redibuja la gráfica sin reiniciarla
         3. Programa próxima actualización
         """
+        
+        
+        start_time = time.time()
+        
         hz_input = self.entrada_hz.get().strip()
         if hz_input != "":
             hz = float(hz_input)
@@ -574,8 +652,12 @@ class AppWindow(ttk.Window):
 
             self.canvas.draw()
             
+            processing_time = time.time() - start_time
+            
+            next_update = max(1, int((self.intervalo_muestreo * 1000) - (processing_time * 1000)))
+            
             #Con el ts va a describir el tiempo que hay entre cada paquete::
-            self.after(int(self.intervalo_muestreo * 1000), self._actualizar_grafica)
+            self.after(next_update, self._actualizar_grafica)
             #WARNING is the code , because : Puede ocasionar cuello de botella
 
     def _actualizar_grafica_ram_cpu(self):
