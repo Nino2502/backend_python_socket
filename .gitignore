@@ -1,0 +1,43 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+
+# Carpetas y archivos de entorno virtual
+venv/
+.env/
+.venv/
+
+# Archivos de configuración de entorno (opcional)
+*.env
+.env.*
+
+# Archivos de log y temporales
+*.log
+*.tmp
+*.swp
+*.bak
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+
+# Archivos de herramientas de desarrollo
+*.vscode/
+.idea/
+
+# Compilados
+build/
+dist/
+*.egg-info/
+
+# PyInstaller
+*.spec
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Otros archivos que no quieres subir
+*.db
+*.sqlite3
