@@ -27,13 +27,15 @@
 
 1. **Activar entorno virtual**:
 
+    ```bash
     venv\Scripts\activate
+    ```
 
 2. **Activar [TCP-CLIENT] archivo principal raiz del proyecto**:
 
     python main.py
 
-3. **Activar [TCP-SERVER] archivo dentro de la carpeta Protocols**:
+3. **Backend (Python):** carpeta `WebSocket/protocols/`, archivo `tcp_server_tiempo.py`
 
 
     python tcp_server_tiempo.py

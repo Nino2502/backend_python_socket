@@ -3,11 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import math
 import time
-
 import psutil
-
 app = FastAPI()
-
 # Middleware para permitir CORS
 app.add_middleware(
     CORSMiddleware,
@@ -16,11 +13,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-#====================================#
-#   ESTE ES DEL PROTOCOLO DE HTTP    #
-#====================================#
-
 
 def get_ram_usage_by_name(target_name: str):
     total_ram = 0.0
@@ -36,10 +28,9 @@ def get_ram_usage_by_name(target_name: str):
 @app.get("/http/sine/{index}")
 def get_sine_paquete(index: int):
     process = psutil.Process()
-    # Hacer mediciones correctamente
-    process.cpu_percent(interval=None)  # Primer llamada para preparar
-    time.sleep(0.1)  # Espera pequeña para que el sistema registre uso de CPU
-    cpu_percent = process.cpu_percent(interval=None)  # Ahora sí, obtener valor real
+    process.cpu_percent(interval=None)
+    time.sleep(0.1) 
+    cpu_percent = process.cpu_percent(interval=None)
     cpu_percent_total = psutil.cpu_percent(interval=None)
     hz = 100
     ts = 1 / hz

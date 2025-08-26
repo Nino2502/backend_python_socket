@@ -6,6 +6,8 @@ from fastapi import FastAPI, WebSocket
 
 app = FastAPI()
 
+
+
 def get_ram_usage_by_name(target_name: str):
     total_ram = 0.0
     for proc in psutil.process_iter(['name', 'memory_info']):
@@ -16,6 +18,7 @@ def get_ram_usage_by_name(target_name: str):
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             continue
     return round(total_ram, 2) if total_ram > 0 else None
+
 
 
 @app.websocket("/ws/socket_web")
@@ -37,6 +40,7 @@ async def websocket_ruta(websocket: WebSocket):
         ram_percent_total = psutil.virtual_memory().percent
         vscode_ram = get_ram_usage_by_name("Code.exe")
         cmd_ram = get_ram_usage_by_name("cmd.exe")
+        
         await websocket.send_json({
             "cantidad_paquetes": i,
             "x": round(i, 2),
@@ -54,6 +58,7 @@ async def websocket_ruta(websocket: WebSocket):
         })
         i += 1
         await asyncio.sleep(ts)
+        
     await websocket.send_json({
         "fin": True,
         "cantidad_paquetes": i,
@@ -65,5 +70,6 @@ async def websocket_ruta(websocket: WebSocket):
         "duracion": duracion,
         "vs_code_ram": vscode_ram,
         "cmd_ram": cmd_ram
-    })   
+    }) 
+     
     #uvicorn web_socket_medir:app --reload

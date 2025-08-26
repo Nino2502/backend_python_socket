@@ -16,6 +16,29 @@ app = FastAPI()
 active_connections: List[WebSocket] = []
 
 
+@app.websocket("/ws/datos") #Se va aconectar a este endpoint
+async def websocket_endpoint(websocket: WebSocket):
+    
+    await websocket.accept() #aqui solo se acepta la peticion Socket
+    
+    active_connections.append(websocket) #Aqui solo guardamos la IP y las conexiones
+    
+    try:
+        while True:
+            await websocket.receive_text()
+           
+            #Mantiene un bucle infinito esperando del cliente.
+            
+    except WebSocketDisconnect:
+        
+        #Se captura la expection
+        
+        active_connections.remove(websocket)
+    
+        #Solo removemos la conexion de active_connections para no enviar
+        #datos en el futuro
+
+
 async def broadcast_data(data):
     for connection in active_connections:
         try:
@@ -65,7 +88,7 @@ def start_tcp_server():
 
             hz = 100
             ts = 1 / hz
-            duration_seconds = 100
+            duration_seconds = 30
             start_time = time.time()
 
             loop = asyncio.new_event_loop()

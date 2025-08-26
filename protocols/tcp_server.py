@@ -73,13 +73,13 @@ def start_tcp_server():
             print(f"Conexión establecida con {addr}")
             
             # Frecuencia de transmisión de datos en Hertz (1 dato por segundo)
-            hz = 50
+            hz = 10
             
             # Intervalo de tiempo entre muestras (1 segundo)
             ts = 1 / hz
             
             # Número total de paquetes a enviar
-            cantidad_paquetes = 1000
+            cantidad_paquetes = 100
             
             # Tiempo total estimado de la transmisión
             total_time = cantidad_paquetes / hz

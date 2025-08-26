@@ -33,8 +33,7 @@ class AppWindow(ttk.Window):
         # ============================== #
         #     VARIABLES DE CONFIGURACIÓN #
         # ============================== #
-        
-        #self.segundos = 15
+
         self.amplitud = 0      # Amplitud de la señal senoidal
         self.hz = 0            # Frecuencia de la señal en Hz
         self.max_datos = 30    # Máximo de puntos mostrados en gráfica
@@ -66,7 +65,6 @@ class AppWindow(ttk.Window):
         self.recibiendo_datos = False   # Flag para hilo de recepción
         self._refrescando = False       # Flag para actualización gráfica
        
-
         # Configuración de interfaz gráfica
         self._setup_ui()
 
@@ -167,9 +165,7 @@ class AppWindow(ttk.Window):
         
             # Espaciador flexible
         ttk.Frame(controles_frame).grid(row=0, column=8, sticky='ew')
-                
         
-                
         # Botones de acción
         ttk.Button(controles_frame, 
                 text="Iniciar/Actualizar", 
@@ -181,16 +177,17 @@ class AppWindow(ttk.Window):
                 bootstyle='danger outline', 
                 command=self.stop_monitor).grid(row=0, column=10, padx=5, pady=5, sticky='ew', ipadx=10, ipady=10)
         
+        ttk.Button(controles_frame,
+                   text="Checar Hz",
+                   bootstyle="warning outline",
+                   command=self.probar_precision_sleep).grid(row=0, column=11, padx=5,sticky="ew", ipadx=10,ipady=10)
         
-        ttk.Button(controles_frame, 
-                text="Probar sleep()", 
-                bootstyle='warning outline', 
-                command=self.probar_precision_sleep).grid(row=0, column=11, padx=5, pady=5, sticky='ew', ipadx=10, ipady=10)
-
+        
+        
         
         
             # Espaciador final
-        ttk.Frame(controles_frame).grid(row=0, column=11, sticky='ew')
+        ttk.Frame(controles_frame).grid(row=0, column=12, sticky='ew')
    
         """"
         ttk.Button(control_grafica,
@@ -280,20 +277,18 @@ class AppWindow(ttk.Window):
 
     
     def probar_precision_sleep(self):
-        """
-        Muestra una gráfica comparando el tiempo ideal vs. real de time.sleep(0.001)
-        y muestra un mensaje indicando si el hz_muestreo ingresado es válido en Windows.
-        """
         import matplotlib.pyplot as plt
 
         try:
+            
             # Obtener el valor de Hz de muestreo desde la entrada
+            
             hz_m = float(self.entrada_hz_muestreo.get())
-            ts = 1 / hz_m  # Intervalo teórico en segundos
-            limite_windows = 0.015625  # Límite real mínimo de sleep en Windows (~15.625 ms)
+            ts = 1 / hz_m
+            limite_windows = 0.015625
 
             estado = "✅ PERMITIDO por Windows" if ts >= limite_windows else "❌ NO PERMITIDO (demasiado rápido)"
-            ts_ms = ts * 1000  # Convertir a milisegundos
+            ts_ms = ts * 1000
             
             """"
             Windows tiene un tick mínimo de reloj de ~15.625 ms, así que aunque tú quieras hacer sleep(0.009) (9 ms), 
@@ -301,7 +296,6 @@ class AppWindow(ttk.Window):
             
             En vez de 5 segundos, se tardan cerca de:
             15.625 ms × 555 = ~8.67 segundos, que coincide con lo que observas (5 esperados, 9 reales).
-            
             
             """
 
